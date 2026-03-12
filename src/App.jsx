@@ -1,49 +1,64 @@
-// Import các Component giao diện của bạn
-import Sidebar from "./components/Sidebar";
-import Header from "./components/Header";
-import Footer from "./components/Footer";
+import React from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Outlet,
+} from "react-router-dom";
 
-// Import test UI (Nút bấm, Slider)
-import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
+import Sidebar from "@/components/Sidebar";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+
+import LoginPage from "@/pages/LoginPage";
+import SignupPage from "@/pages/SignupPage";
+import ResetPassword from "@/pages/ResetPassword";
+
+import SheetsLibrary from "./pages/SheetsLibrary";
+import MyRecords from "./pages/MyRecords";
+import JamRoom from "./pages/JamRoom";
+//import JamRoom from './pages/JamRoom';
+
+const MainLayout = () => {
+  return (
+    <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
+      <Sidebar />
+      <div className="flex flex-col flex-1 min-w-0">
+        <div className="shrink-0">
+          <Header />
+        </div>
+        <main className="flex-1 p-8 overflow-y-auto">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+};
 
 function App() {
   return (
-    // Container cha: Chiếm toàn màn hình, không cho cuộn ngang dọc
-    <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
-      
-      {/* Cột trái: Sidebar cố định */}
-      <Sidebar />
+    <Router>
+      <Routes>
+        {/* --- NHÓM 1: CÁC TRANG AUTH (KHÔNG CÓ SIDEBAR/HEADER) --- */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
-      {/* Cột phải: Khu vực nội dung chính */}
-      <div className="flex flex-col flex-1 overflow-y-auto">
-        
-        {/* Header nằm trên cùng cột phải */}
-        <Header />
-
-        {/* Nội dung trang (Main Content) */}
-        <main className="flex-1 p-8">
-          <div className="max-w-4xl mx-auto space-y-8">
-            <h1 className="text-3xl font-bold">Khám phá Phòng Thu</h1>
-            
-            {/* Khối Test Mixer của chúng ta */}
-            <div className="w-full max-w-sm space-y-4 p-6 border rounded-xl bg-card">
-              <h3 className="font-semibold text-lg">Kệ Piano</h3>
-              <p className="text-sm text-muted-foreground">User: le duy phuong ha</p>
-              <Slider defaultValue={[70]} max={100} step={1} className="w-full mt-4" />
-              <div className="flex gap-4 pt-4">
-                <Button variant="default">Phát nhạc</Button>
-                <Button variant="outline">Mute</Button>
-              </div>
-            </div>
-          </div>
-        </main>
-
-        {/* Footer nằm dưới cùng cột phải */}
-        <Footer />
-      </div>
-
-    </div>
+        {/* --- NHÓM 2: CÁC TRANG CHÍNH (ĐƯỢC BỌC TRONG MAINLAYOUT) --- */}
+        <Route element={<MainLayout />}>
+          {/* Tạm thời để text mộc cho Trang chủ và Phòng Jam */}
+          <Route
+            path="/"
+            element={
+              <h1 className="text-3xl font-bold">Trang chủ (Sắp ra mắt)</h1>
+            }
+          />
+          <Route path="/jam-room" element={<JamRoom />} />
+          <Route path="/sheets-library" element={<SheetsLibrary />} />
+          <Route path="/my-records" element={<MyRecords />} />
+        </Route>
+      </Routes>
+    </Router>
   );
 }
 
