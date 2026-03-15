@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { 
   Play, Pause, Square, SkipBack, Download, 
-  Mic2, Settings2, Volume2, Plus,
+  Mic2, Volume2, Plus,
   MoreHorizontal, Layers, Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,20 +15,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Card } from "@/components/ui/card"; // Import thêm Card của shadcn
 
 export default function JamRoom() {
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // Dữ liệu mô phỏng các Kệ nhạc cụ, bổ sung mảng 'records' (các bản thu bên trong kệ)
+  // Dữ liệu mô phỏng, tôi đã đổi lại màu dải sóng sang mã hexa để dễ gán viền màu dọc
   const [tracks, setTracks] = useState([
     { 
       id: 1, 
       instrument: "Piano Grand", 
       user: "le duy phuong ha", 
       avatar: "https://github.com/shadcn.png",
-      color: "bg-blue-500",
+      waveColor: "#3b82f6", // Màu dải sóng (Xanh dương)
       volume: 80,
-      activeRecordId: 'r2', // ID của bản thu đang được bật
+      activeRecordId: 'r2',
       records: [
         { id: 'r1', name: "Take 1 (Bản nháp êm dịu)" },
         { id: 'r2', name: "Take 2 (Chơi mạnh hơn)" },
@@ -41,7 +42,7 @@ export default function JamRoom() {
       instrument: "Acoustic Guitar", 
       user: "Anais desiree", 
       avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704d",
-      color: "bg-emerald-500",
+      waveColor: "#10b981", // Màu dải sóng (Xanh lục)
       volume: 75,
       activeRecordId: 'g1',
       records: [
@@ -55,15 +56,14 @@ export default function JamRoom() {
       instrument: "Vocal Chính", 
       user: "Chưa có", 
       avatar: "",
-      color: "bg-amber-500",
+      waveColor: "#f59e0b", // Màu dải sóng (Vàng hổ phách)
       volume: 50,
       activeRecordId: null,
-      records: [], // Kệ trống chưa có bản thu nào
+      records: [],
       clips: [] 
     }
   ]);
 
-  // Hàm xử lý đổi bản thu (Cập nhật activeRecordId)
   const changeActiveRecord = (trackId, recordId) => {
     setTracks(tracks.map(t => 
       t.id === trackId ? { ...t, activeRecordId: recordId } : t
@@ -73,10 +73,10 @@ export default function JamRoom() {
   return (
     <div className="flex flex-col h-full bg-background border border-border rounded-xl overflow-hidden shadow-sm">
       
-      {/* KHU VỰC 1: MASTER CONTROL BAR */}
+      {/* KHU VỰC 1: MASTER CONTROL BAR (Giữ nguyên) */}
       <div className="h-16 bg-card border-b border-border flex items-center justify-between px-4 shrink-0">
-        <div className="flex items-center gap-3 w-64">
-          <div className="w-10 h-10 rounded-md bg-primary/20 flex items-center justify-center">
+        <div className="flex items-center gap-3 w-80">
+          <div className="w-10 h-10 rounded-md bg-primary/20 flex items-center justify-center border border-primary/30">
             <Mic2 className="w-5 h-5 text-primary" />
           </div>
           <div>
@@ -84,7 +84,6 @@ export default function JamRoom() {
             <p className="text-xs text-muted-foreground">BPM: 120 • 4/4</p>
           </div>
         </div>
-
         <div className="flex flex-col items-center justify-center flex-1">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
@@ -93,7 +92,7 @@ export default function JamRoom() {
             <Button 
               variant="default" 
               size="icon" 
-              className="w-10 h-10 rounded-full"
+              className="w-11 h-11 rounded-full shadow-lg shadow-primary/20"
               onClick={() => setIsPlaying(!isPlaying)}
             >
               {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-1" />}
@@ -102,12 +101,11 @@ export default function JamRoom() {
               <Square className="w-4 h-4 fill-current" />
             </Button>
           </div>
-          <div className="text-xs font-mono font-medium text-muted-foreground mt-1 tracking-wider">
+          <div className="text-xs font-mono font-medium text-muted-foreground mt-1.5 tracking-wider">
             00:01:24 / 00:03:45
           </div>
         </div>
-
-        <div className="flex items-center justify-end gap-4 w-64">
+        <div className="flex items-center justify-end gap-4 w-80">
           <div className="flex items-center gap-2 w-32">
             <Volume2 className="w-4 h-4 text-muted-foreground" />
             <Slider defaultValue={[100]} max={100} step={1} className="w-full" />
@@ -122,98 +120,127 @@ export default function JamRoom() {
       {/* KHU VỰC CHÍNH */}
       <div className="flex flex-1 overflow-hidden relative">
         
-        {/* KHU VỰC 2: TRACK PANEL BÊN TRÁI */}
-        <div className="w-72 border-r border-border bg-card/50 flex flex-col z-10 overflow-y-auto">
-          <div className="h-8 border-b border-border flex items-center px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider bg-muted/20">
+        {/* ========================================================= */}
+        {/* KHU VỰC 2: TRACK PANEL BÊN TRÁI - NƠI ĐƯỢC NÂNG CẤP GIAO DIỆN */}
+        {/* ========================================================= */}
+        
+        {/* Nền của panel tối hơn (bg-background) để làm nổi các thẻ Card */}
+        <div className="w-72 border-r border-border bg-background flex flex-col z-10 overflow-y-auto">
+          <div className="h-8 border-b border-border flex items-center px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider bg-muted/40 sticky top-0 z-10">
             Các Kệ Nhạc Cụ
           </div>
 
-          {tracks.map((track) => (
-            <div key={track.id} className="h-28 border-b border-border flex flex-col p-3 hover:bg-accent/30 transition-colors">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-2 overflow-hidden">
-                  <Avatar className="w-6 h-6 border border-border">
-                    {track.avatar ? (
-                      <AvatarImage src={track.avatar} />
-                    ) : (
-                      <AvatarFallback className="bg-muted text-[10px]">?</AvatarFallback>
-                    )}
-                  </Avatar>
-                  <div className="flex flex-col overflow-hidden">
-                    <span className="font-semibold text-sm truncate">{track.instrument}</span>
-                    <span className="text-[10px] text-muted-foreground truncate">{track.user}</span>
+          {/* Dùng flex-col và p-3 để tạo khoảng trống giữa các Card */}
+          <div className="flex flex-col gap-3 p-3">
+            {tracks.map((track) => (
+              // Biến mỗi track thành một thẻ Card độc lập, có shadow
+              <Card 
+                key={track.id} 
+                className="h-28 flex flex-col p-0 rounded-lg overflow-hidden border-border bg-card shadow hover:shadow-md hover:border-primary/40 transition-all duration-300 relative group"
+              >
+                {/* NÂNG CẤP 2: Dải màu dọc ở mép trái, khớp với màu sóng âm */}
+                <div 
+                  className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg z-10"
+                  style={{ backgroundColor: track.waveColor }}
+                />
+
+                {/* Nội dung bên trong card, có padding trái (pl-4) để nhường chỗ cho dải màu */}
+                <div className="flex flex-col h-full p-3 pl-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <Avatar className="w-7 h-7 border border-border/50 shadow-inner">
+                        {track.avatar ? (
+                          <AvatarImage src={track.avatar} />
+                        ) : (
+                          <AvatarFallback className="bg-muted text-[10px]">?</AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div className="flex flex-col overflow-hidden">
+                        {/* Tăng tương phản text */}
+                        <span className="font-bold text-sm truncate text-foreground leading-tight">{track.instrument}</span>
+                        <span className="text-[10px] text-muted-foreground truncate">{track.user}</span>
+                      </div>
+                    </div>
+                    {/* Icon options mờ đi, chỉ hiện khi hover */}
+                    <Button variant="ghost" size="icon" className="w-6 h-6 opacity-40 group-hover:opacity-100 transition-opacity">
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  {/* Nhóm điều khiển dưới cùng */}
+                  <div className="mt-auto flex items-center gap-2.5">
+                    
+                    {/* Menu chọn bản thu - NÂNG CẤP 3: Tăng tương phản */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          // Nếu có record, nút sẽ phát sáng màu Primary
+                          className={`h-7 px-2.5 flex gap-1.5 transition-colors ${
+                            track.records.length > 0 
+                              ? 'text-primary border-primary/50 bg-primary/10 hover:bg-primary/20' 
+                              : 'text-muted-foreground border-border bg-muted/30'
+                          }`}
+                          disabled={track.records.length === 0}
+                          title="Xem danh sách các bản thu trong kệ này"
+                        >
+                          <Layers className="w-3.5 h-3.5" />
+                          <span className="text-[10px] font-bold">{track.records.length}</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      
+                      <DropdownMenuContent side="right" align="start" className="w-56 ml-3 shadow-xl">
+                        <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">
+                          Chọn bản thu hoạt động
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        
+                        {track.records.map(record => (
+                          <DropdownMenuItem 
+                            key={record.id}
+                            onSelect={(e) => {
+                              e.preventDefault();
+                              changeActiveRecord(track.id, record.id);
+                            }}
+                            className={`cursor-pointer flex items-center justify-between py-2 rounded-md ${
+                              track.activeRecordId === record.id 
+                                ? 'bg-primary/10 text-primary focus:bg-primary/20 focus:text-primary' 
+                                : ''
+                            }`}
+                          >
+                            <span className="text-sm font-medium truncate pr-4">{record.name}</span>
+                            {track.activeRecordId === record.id && (
+                              <Check className="w-4 h-4 text-primary shrink-0" />
+                            )}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {/* Thanh volume - NÂNG CẤP 3: Nổi bật Icon */}
+                    <div className="flex-1 px-1 flex items-center gap-2">
+                      <Volume2 className="w-4 h-4 text-foreground/70 shrink-0" />
+                      <Slider defaultValue={[track.volume]} max={100} step={1} className="w-full" />
+                    </div>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" className="w-6 h-6">
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
-              </div>
+              </Card>
+            ))}
 
-              {/* Nhóm điều khiển mới: Nút Layers thay cho Mute/Solo */}
-              <div className="mt-auto flex items-center gap-2">
-                
-                {/* Menu chọn bản thu */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className={`h-7 px-2 flex gap-1.5 ${track.records.length > 0 ? 'text-primary border-primary/50 bg-primary/10' : 'text-muted-foreground'}`}
-                      disabled={track.records.length === 0}
-                      title="Xem danh sách các bản thu trong kệ này"
-                    >
-                      <Layers className="w-3.5 h-3.5" />
-                      <span className="text-[10px] font-bold">{track.records.length}</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  
-                  {/* side="right" để menu bung sang ngang thay vì che khuất kệ nhạc cụ */}
-                  <DropdownMenuContent side="right" align="start" className="w-56 ml-2">
-                    <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">
-                      Chọn bản thu hoạt động
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    
-                    {track.records.map(record => (
-                      <DropdownMenuItem 
-                        key={record.id}
-                        // CHÌA KHÓA Ở ĐÂY: e.preventDefault() ngăn menu đóng lại khi click
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          changeActiveRecord(track.id, record.id);
-                        }}
-                        className={`cursor-pointer flex items-center justify-between py-2 ${track.activeRecordId === record.id ? 'bg-primary/10 text-primary focus:bg-primary/20 focus:text-primary' : ''}`}
-                      >
-                        <span className="text-sm font-medium truncate pr-4">{record.name}</span>
-                        {/* Dấu tick xác nhận bản thu đang được bật */}
-                        {track.activeRecordId === record.id && (
-                          <Check className="w-4 h-4 text-primary shrink-0" />
-                        )}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                {/* Thanh kéo âm lượng (Volume) */}
-                <div className="flex-1 px-2 flex items-center gap-2">
-                  <Volume2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  <Slider defaultValue={[track.volume]} max={100} step={1} className="w-full" />
-                </div>
-              </div>
+            {/* Nút thêm Track mới */}
+            <div className="pt-1">
+              <Button variant="outline" className="w-full border-dashed border-border text-muted-foreground hover:border-primary/50 hover:text-primary transition-all">
+                <Plus className="w-4 h-4 mr-1" />
+                Thêm kệ nhạc cụ
+              </Button>
             </div>
-          ))}
-
-          <div className="p-4">
-            <Button variant="outline" className="w-full border-dashed gap-2 text-muted-foreground">
-              <Plus className="w-4 h-4" />
-              Thêm kệ nhạc cụ
-            </Button>
           </div>
         </div>
 
-        {/* KHU VỰC 3: TIMELINE (Giữ nguyên như cũ) */}
+        {/* KHU VỰC 3: TIMELINE (Phần nền bg-grid-pattern và màu clips được cập nhật) */}
         <div className="flex-1 bg-background overflow-x-auto overflow-y-auto relative">
-          <div className="h-8 border-b border-border bg-muted/20 flex items-end px-4 sticky top-0 z-10 min-w-[800px]">
+          <div className="h-8 border-b border-border bg-muted/40 flex items-end px-4 sticky top-0 z-10 min-w-[800px]">
             {[...Array(10)].map((_, i) => (
               <div key={i} className="flex-1 border-l border-border/50 h-3 text-[10px] text-muted-foreground pl-1">
                 0:0{i * 5}
@@ -223,14 +250,16 @@ export default function JamRoom() {
 
           <div className="relative min-w-[800px]">
             {tracks.map((track) => (
-              <div key={track.id} className="h-28 border-b border-border/50 relative group bg-grid-pattern">
-                <div className="absolute w-full h-px bg-border/30 top-1/2 -translate-y-1/2"></div>
+              // Cập nhật nền grid pattern
+              <div key={track.id} className="h-28 border-b border-border/50 relative group bg-[url('/grid.svg')] bg-center">
+                <div className="absolute w-full h-px bg-border/20 top-1/2 -translate-y-1/2"></div>
                 {track.clips.length > 0 ? (
                   track.clips.map((clip, index) => (
                     <div 
                       key={index} 
-                      className={`absolute top-2 bottom-2 rounded-md ${track.color} opacity-80 border border-white/20 shadow-sm cursor-pointer hover:opacity-100 transition-opacity flex items-center justify-center overflow-hidden`}
-                      style={{ left: clip.start, width: clip.width }}
+                      // Sử dụng style inline để gán màu đã đổi sang HEXA
+                      className={`absolute top-2 bottom-2 rounded-md opacity-85 border border-white/20 shadow-sm cursor-pointer hover:opacity-100 transition-opacity flex items-center justify-center overflow-hidden`}
+                      style={{ left: clip.start, width: clip.width, backgroundColor: track.waveColor }}
                     >
                       <svg className="w-full h-full opacity-30 px-2" preserveAspectRatio="none" viewBox="0 0 100 100">
                         <path d="M0,50 Q5,10 10,50 T20,50 T30,50 T40,50 T50,50 T60,50 T70,50 T80,50 T90,50 T100,50" stroke="white" strokeWidth="2" fill="none" />
@@ -238,14 +267,14 @@ export default function JamRoom() {
                     </div>
                   ))
                 ) : (
-                  <div className="absolute inset-2 border-2 border-dashed border-muted flex items-center justify-center rounded-md bg-muted/10 hover:bg-muted/30 transition-colors cursor-pointer text-muted-foreground text-sm font-medium">
+                  <div className="absolute inset-2 border-2 border-dashed border-muted flex items-center justify-center rounded-md bg-muted/10 hover:bg-muted/20 hover:border-border transition-colors cursor-pointer text-muted-foreground text-sm font-medium">
                     + Nhấp để nộp bản thu Vocal
                   </div>
                 )}
               </div>
             ))}
-            <div className="absolute top-0 bottom-0 left-[25%] w-px bg-primary z-20 shadow-[0_0_10px_rgba(255,255,255,0.5)]">
-              <div className="absolute -top-3 -left-2 w-0 h-0 border-l-[8px] border-r-[8px] border-t-[12px] border-transparent border-t-primary"></div>
+            <div className="absolute top-0 bottom-0 left-[25%] w-px bg-primary z-20 shadow-[0_0_15px_rgba(255,255,255,0.7)]">
+              <div className="absolute -top-3 -left-2.5 w-0 h-0 border-l-[10px] border-r-[10px] border-t-[14px] border-transparent border-t-primary shadow"></div>
             </div>
           </div>
         </div>

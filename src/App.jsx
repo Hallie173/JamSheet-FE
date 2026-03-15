@@ -17,6 +17,7 @@ import ResetPassword from "@/pages/ResetPassword";
 import SheetsLibrary from "./pages/SheetsLibrary";
 import MyRecords from "./pages/MyRecords";
 import JamRoom from "./pages/JamRoom";
+import Home from "./pages/Home";
 //import JamRoom from './pages/JamRoom';
 
 const MainLayout = () => {
@@ -53,6 +54,7 @@ function App() {
               <h1 className="text-3xl font-bold">Trang chủ (Sắp ra mắt)</h1>
             }
           />
+          <Route path="/welcome-to-jamsheet" element={<Home />} />
           <Route path="/jam-room" element={<JamRoom />} />
           <Route path="/sheets-library" element={<SheetsLibrary />} />
           <Route path="/my-records" element={<MyRecords />} />
