@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  PlayCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,19 +21,15 @@ import { Card, CardFooter, CardHeader } from "@/components/ui/card";
 
 export default function SheetsLibrary() {
   const isLoggedIn = !!localStorage.getItem("token");
-
-  // Lấy ID của người dùng đang đăng nhập để biết họ đã like bài nào
   const userStr = localStorage.getItem("user");
   const currentUser = userStr ? JSON.parse(userStr) : null;
   const currentUserId = currentUser?._id || currentUser?.userId || null;
 
   const [mySheets, setMySheets] = useState([]);
   const [exploreSheets, setExploreSheets] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-
   const [selectedSheet, setSelectedSheet] = useState(null);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [editingSheetId, setEditingSheetId] = useState(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const [editFormData, setEditFormData] = useState({
     title: "",
@@ -50,6 +47,15 @@ export default function SheetsLibrary() {
     tempo: "",
     genre: "",
     file: null,
+  });
+
+  const [isJamModalOpen, setIsJamModalOpen] = useState(false);
+  const [jamFormData, setJamFormData] = useState({
+    sheet_id: "",
+    title: "",
+    tempo: "",
+    time_signature: "4/4",
+    required_instruments: "",
   });
 
   useEffect(() => {
@@ -228,6 +234,78 @@ export default function SheetsLibrary() {
     window.open(sheet.images[0], "_blank");
   };
 
+  const handleJamNow = async (e, sheet) => {
+    e.stopPropagation();
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `http://localhost:5000/api/jams/check-duplicate?title=${encodeURIComponent(sheet.title)}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      const data = await res.json();
+
+      if (data.isDuplicate) {
+        // 2. Nếu đã tồn tại, hiển thị Confirm
+        const confirmGo = window.confirm(
+          `Bạn đã từng mở một phòng Jam với nhạc phổ "${sheet.title}"!\n\nNhấn OK để vào phòng Jam ngay!`,
+        );
+        if (confirmGo) {
+          window.location.href = `/jam-room?id=${data.roomId}`;
+        }
+        return;
+      }
+
+      setJamFormData({
+        sheet_id: sheet.id,
+        title: sheet.title,
+        tempo: sheet.tempo,
+        time_signature: "",
+        required_instruments: sheet.instrument_tags
+          ? sheet.instrument_tags.join(", ")
+          : "",
+      });
+      setIsJamModalOpen(true);
+    } catch (error) {
+      console.error(error);
+      alert("Có lỗi xảy ra khi kiểm tra dữ liệu!");
+    }
+  };
+
+  const handleCreateJamSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem("token");
+      const instrumentsArray = jamFormData.required_instruments
+        .split(",")
+        .map((i) => i.trim())
+        .filter((i) => i);
+
+      const res = await fetch("http://localhost:5000/api/jams", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...jamFormData,
+          sheet_music_id: jamFormData.sheet_id,
+          tempo: Number(jamFormData.tempo),
+          required_instruments: instrumentsArray,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+
+      // Chuyển hướng đến phòng Jam vừa tạo
+      window.location.href = `/jam-room?id=${data.room._id}`;
+    } catch (error) {
+      alert("Lỗi tạo phòng Jam: " + error.message);
+    }
+  };
+
   // Component tái sử dụng cho giao diện Thẻ Nhạc Phổ (Card)
   const SheetCard = ({ sheet, isMySheet }) => {
     const isLiked = sheet.liked_by.includes(currentUserId);
@@ -243,6 +321,17 @@ export default function SheetsLibrary() {
           }
         }}
       >
+        {isMySheet && editingSheetId !== sheet.id && (
+          <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+            <Button
+              size="sm"
+              className="gap-2 h-10 px-6 shadow-lg shadow-primary/25 rounded-lg"
+              onClick={(e) => handleJamNow(e, sheet)}
+            >
+              <PlayCircle className="w-4 h-4" /> Jam ngay
+            </Button>
+          </div>
+        )}
         {isMySheet && editingSheetId !== sheet.id && (
           <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
             <Button
@@ -653,7 +742,7 @@ export default function SheetsLibrary() {
           <div className="relative w-full h-full flex items-center justify-center p-4 sm:p-12">
             {selectedSheet.images[0]?.toLowerCase().endsWith(".pdf") ? (
               <iframe
-                src={`${selectedSheet.images[0]}#toolbar=0`}
+                src={selectedSheet.images[0]}
                 className="w-full h-full rounded-md shadow-2xl bg-white"
                 title={selectedSheet.title}
               ></iframe>
@@ -665,6 +754,92 @@ export default function SheetsLibrary() {
               />
             )}
           </div>
+        </div>
+      )}
+
+      {/* MODAL KHỞI TẠO PHÒNG JAM */}
+      {isJamModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <Card className="w-full max-w-lg bg-background p-6 shadow-2xl animate-in fade-in zoom-in-95 border-primary/20 border-2">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold flex items-center gap-2 text-primary">
+                <PlayCircle className="w-6 h-6" /> Thiết lập phòng Jam mới
+              </h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsJamModalOpen(false)}
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+            <form onSubmit={handleCreateJamSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Tên bài hát (Từ Nhạc phổ)</Label>
+                {/* Thuộc tính readOnly khóa input */}
+                <Input
+                  value={jamFormData.title}
+                  readOnly
+                  className="bg-muted text-muted-foreground cursor-not-allowed"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Nhịp độ (BPM) *</Label>
+                  <Input
+                    type="number"
+                    required
+                    value={jamFormData.tempo}
+                    onChange={(e) =>
+                      setJamFormData({ ...jamFormData, tempo: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Nhịp (Time Signature)</Label>
+                  <Input
+                    placeholder="VD: 4/4, 3/4"
+                    value={jamFormData.time_signature}
+                    onChange={(e) =>
+                      setJamFormData({
+                        ...jamFormData,
+                        time_signature: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Tuyển nhạc công (Nhạc cụ cần tìm) *</Label>
+                <Input
+                  required
+                  placeholder="VD: Guitar Lead, Bass, Vocal..."
+                  value={jamFormData.required_instruments}
+                  onChange={(e) =>
+                    setJamFormData({
+                      ...jamFormData,
+                      required_instruments: e.target.value,
+                    })
+                  }
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Ngăn cách các nhạc cụ bằng dấu phẩy (,)
+                </p>
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsJamModalOpen(false)}
+                >
+                  Hủy
+                </Button>
+                <Button type="submit" className="shadow-lg shadow-primary/20">
+                  Mở phòng Jam
+                </Button>
+              </div>
+            </form>
+          </Card>
         </div>
       )}
     </div>

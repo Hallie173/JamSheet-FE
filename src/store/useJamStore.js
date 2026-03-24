@@ -1,90 +1,42 @@
 import { create } from "zustand";
 
-// DỮ LIỆU GIẢ LẬP
-const mockRooms = [
-  {
-    id: "room_1",
-    title: "Gió Vẫn Hát - Acoustic Jam",
-    tempo: 120,
-    timeSignature: "4/4",
-    tracks: [
-      {
-        id: 1,
-        instrument: "Piano Grand",
-        user: "le duy phuong ha",
-        avatar: "https://github.com/shadcn.png",
-        waveColor: "#3b82f6",
-        volume: 80,
-        activeRecordId: "r2",
-        records: [
-          { id: "r1", name: "Take 1 (Bản nháp êm dịu)" },
-          {
-            id: "r2",
-            name: "Take 2 (Chơi mạnh hơn)",
-            audioUrl: "/test_piano_sach.wav",
-          },
-        ],
-      },
-      {
-        id: 2,
-        instrument: "Acoustic Guitar",
-        user: "Anais desiree",
-        avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704d",
-        waveColor: "#10b981",
-        volume: 75,
-        activeRecordId: "g1",
-        records: [
-          {
-            id: "g1",
-            name: "Đánh quạt chả",
-            audioUrl: "/test_piano_on.wav",
-          },
-        ],
-        clips: [{ start: "10%", width: "60%" }],
-      },
-    ],
-  },
-  {
-    id: "room_2",
-    title: "River Flows In You - Lofi",
-    tempo: 85,
-    timeSignature: "4/4",
-    tracks: [
-      {
-        id: 3,
-        instrument: "Lofi Beat",
-        user: "ProducerX",
-        avatar: "",
-        waveColor: "#8b5cf6",
-        volume: 60,
-        activeRecordId: null,
-        records: [],
-      },
-    ],
-  },
-];
-
 export const useJamStore = create((set, get) => ({
-  // === 1. TRẠNG THÁI ===
-  rooms: mockRooms,
-  activeRoom: mockRooms[0],
-  currentTracks: mockRooms[0].tracks,
+  // XÓA DỮ LIỆU GIẢ, THAY BẰNG DỮ LIỆU TRỐNG
+  activeRoom: null,
+  currentTracks: [],
   isPlaying: false,
   masterVolume: 100,
+  isLoadingRoom: false, // State để hiển thị vòng quay Loading
+  errorMsg: null,
 
-  // === 2. HÀNH ĐỘNG ===
-  togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
-
-  switchRoom: (roomId) => {
-    const room = get().rooms.find((r) => r.id === roomId);
-    if (room) {
-      set({
-        activeRoom: room,
-        currentTracks: room.tracks,
-        isPlaying: false,
+  // HÀM MỚI: Gọi API lên Backend lấy dữ liệu phòng theo ID
+  fetchJamRoomData: async (roomId) => {
+    set({ isLoadingRoom: true, errorMsg: null });
+    try {
+      const response = await fetch(`http://localhost:5000/api/jams/${roomId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
       });
+
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.message || "Không thể tải phòng Jam");
+
+      // Cập nhật State với dữ liệu thật từ MongoDB
+      set({
+        activeRoom: data,
+        currentTracks: data.tracks,
+        isPlaying: false,
+        isLoadingRoom: false,
+      });
+    } catch (error) {
+      console.error(error);
+      set({ errorMsg: error.message, isLoadingRoom: false });
     }
   },
+
+  togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
 
   changeActiveRecord: (trackId, recordId) => {
     set((state) => ({
@@ -102,5 +54,43 @@ export const useJamStore = create((set, get) => ({
         t.id === trackId ? { ...t, volume: volume } : t,
       ),
     }));
+  },
+
+  saveMixToCloud: async (projectId) => {
+    const { currentTracks } = get();
+    const formattedTracksConfig = currentTracks.map((track) => ({
+      instrument: track.instrument,
+      volume: track.volume,
+      active_record_id: track.activeRecordId || null,
+    }));
+
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/jams/${projectId}/mix-config`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({ tracks_config: formattedTracksConfig }),
+        },
+      );
+
+      if (!response.ok) {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Lỗi khi lưu bản mix");
+        } else {
+          throw new Error(`Lỗi máy chủ (Mã lỗi ${response.status}).`);
+        }
+      }
+      const data = await response.json();
+      return { success: true, message: data.message };
+    } catch (error) {
+      console.error(error);
+      return { success: false, message: error.message };
+    }
   },
 }));

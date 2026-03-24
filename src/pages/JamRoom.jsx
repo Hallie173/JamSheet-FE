@@ -34,16 +34,18 @@ export default function JamRoom() {
   const isLoggedIn = !!localStorage.getItem("token");
 
   const {
-    rooms,
     activeRoom,
     currentTracks,
     isPlaying,
     masterVolume,
+    isLoadingRoom, // <-- Lấy biến loading
+    errorMsg, // <-- Lấy biến lỗi
     togglePlay,
-    switchRoom,
     changeActiveRecord,
     setMasterVolume,
     setTrackVolume,
+    saveMixToCloud,
+    fetchJamRoomData, // <-- Lấy hàm fetch
   } = useJamStore();
 
   const audioCtxRef = useRef(null);
@@ -59,6 +61,29 @@ export default function JamRoom() {
 
   const [trackDurations, setTrackDurations] = useState({});
   const maxAudioDurationRef = useRef(15); // BỔ SUNG: Dùng Ref để lưu trữ độ dài thực, phục vụ cho Auto-stop
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    const params = new URLSearchParams(window.location.search);
+    const roomId = params.get("id");
+
+    if (roomId) {
+      fetchJamRoomData(roomId);
+    }
+  }, [isLoggedIn]);
+
+  const handleSaveMix = async () => {
+    if (!activeRoom?.id) return;
+    setIsSaving(true);
+    const result = await saveMixToCloud(activeRoom.id);
+    setIsSaving(false);
+    if (result.success) {
+      alert("Đã lưu cấu hình bản Mix thành công!");
+    } else {
+      alert("Lỗi: " + result.message);
+    }
+  };
 
   const [prevRoomId, setPrevRoomId] = useState(activeRoom?.id);
   if (activeRoom?.id !== prevRoomId) {
@@ -257,6 +282,11 @@ export default function JamRoom() {
     return `${m}:${s}`;
   };
 
+  const hasAnyAudio = currentTracks.some((track) => {
+    const activeRecord = track.records.find((r) => r.id === track.activeRecordId);
+    return activeRecord && activeRecord.audioUrl;
+  })
+
   if (!isLoggedIn) {
     return (
       <div className="flex flex-col h-full space-y-8">
@@ -291,46 +321,69 @@ export default function JamRoom() {
     );
   }
 
+  if (isLoadingRoom) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center space-y-4">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+        <p className="text-muted-foreground font-medium animate-pulse">
+          Đang thiết lập Bàn Mixer...
+        </p>
+      </div>
+    );
+  }
+
+  if (errorMsg) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center space-y-4">
+        <div className="w-16 h-16 bg-destructive/10 text-destructive rounded-full flex items-center justify-center">
+          <X className="w-8 h-8" />
+        </div>
+        <h3 className="text-xl font-bold">Không thể tải phòng Jam!</h3>
+        <p className="text-muted-foreground">{errorMsg}</p>
+        <Button variant="outline" onClick={() => (window.location.href = "/")}>
+          Về Trang chủ
+        </Button>
+      </div>
+    );
+  }
+
+  if (!activeRoom) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center space-y-4 text-center">
+        <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+          <Music className="w-8 h-8 text-muted-foreground" />
+        </div>
+        <h3 className="text-xl font-bold">Chưa chọn phòng Jam nào</h3>
+        <p className="text-muted-foreground">
+          Vui lòng vào Thư viện Nhạc phổ để bắt đầu một bản Mix mới.
+        </p>
+        <Button
+          variant="default"
+          onClick={() => (window.location.href = "/library")}
+        >
+          Đến Thư viện
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full bg-background border border-border rounded-xl overflow-hidden shadow-sm">
-      {/* HEADER */}
+      {/* HEADER BÀN MIXER */}
       <div className="h-16 bg-card border-b border-border flex items-center justify-between px-4 shrink-0">
         <div className="flex items-center gap-3 w-80">
           <div className="w-10 h-10 rounded-md bg-primary/20 flex items-center justify-center border border-primary/30 shrink-0">
             <Mic2 className="w-5 h-5 text-primary" />
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <div className="flex flex-col cursor-pointer hover:bg-muted/50 p-1.5 -ml-1.5 rounded-md transition-colors w-full overflow-hidden">
-                <div className="flex items-center gap-1">
-                  <h2 className="font-bold leading-tight truncate">
-                    {activeRoom?.title}
-                  </h2>
-                  <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  BPM: {activeRoom?.tempo} • {activeRoom?.timeSignature}
-                </p>
-              </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-64">
-              <DropdownMenuLabel>Chuyển đổi phòng Jam</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {rooms.map((room) => (
-                <DropdownMenuItem
-                  key={room.id}
-                  className={`cursor-pointer ${activeRoom?.id === room.id ? "bg-primary/10 text-primary font-medium" : ""}`}
-                  onClick={() => switchRoom(room.id)}
-                >
-                  <Music className="w-4 h-4 mr-2 opacity-70" />
-                  <span className="truncate">{room.title}</span>
-                  {activeRoom?.id === room.id && (
-                    <Check className="w-4 h-4 ml-auto text-primary" />
-                  )}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* ĐÃ SỬA: Bỏ DropdownMenu lỗi, thay bằng Label tĩnh hiển thị tên phòng */}
+          <div className="flex flex-col w-full overflow-hidden">
+            <h2 className="font-bold leading-tight truncate text-foreground">
+              {activeRoom.title}
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              BPM: {activeRoom.tempo} • {activeRoom.timeSignature}
+            </p>
+          </div>
         </div>
 
         <div className="flex flex-col items-center justify-center flex-1">
@@ -346,9 +399,9 @@ export default function JamRoom() {
             <Button
               variant="default"
               size="icon"
-              className="w-11 h-11 rounded-full shadow-lg shadow-primary/20"
+              className={`w-11 h-11 rounded-full shadow-lg shadow-primary/20 ${!hasAnyAudio && !isPlaying ? 'opacity-50' : ''}`}
               onClick={togglePlay}
-              disabled={isLoadingAudio}
+              disabled={isLoadingAudio || (!hasAnyAudio && !isPlaying)}
             >
               {isLoadingAudio ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -383,13 +436,24 @@ export default function JamRoom() {
               className="w-full"
             />
           </div>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Download className="w-4 h-4" /> Xuất File
+          <Button
+            variant="default"
+            size="sm"
+            className="gap-2 shadow-md shadow-primary/20"
+            onClick={handleSaveMix}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            Lưu Mix
           </Button>
         </div>
       </div>
 
-      {/* KHU VỰC CHÍNH */}
+      {/* KHU VỰC CHÍNH (CÁC KỆ NHẠC CỤ & SÓNG ÂM) */}
       <div className="flex flex-1 overflow-hidden relative">
         <div className="w-72 border-r border-border bg-background flex flex-col z-10 overflow-y-auto shrink-0 shadow-[4px_0_15px_rgba(0,0,0,0.1)]">
           <div className="h-8 border-b border-border flex items-center px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider bg-muted/40 sticky top-0 z-10">
@@ -457,9 +521,7 @@ export default function JamRoom() {
                             key={record.id}
                             onSelect={(e) => {
                               e.preventDefault();
-                              if (isPlaying) {
-                                handleStop();
-                              }
+                              if (isPlaying) handleStop();
                               changeActiveRecord(track.id, record.id);
                             }}
                             className={`cursor-pointer flex justify-between py-2 ${track.activeRecordId === record.id ? "bg-primary/10 text-primary" : ""}`}
@@ -528,7 +590,6 @@ export default function JamRoom() {
                     className="h-28 border-b border-border/50 relative group bg-[url('/grid.svg')] bg-center pointer-events-none"
                   >
                     <div className="absolute w-full h-px bg-border/20 top-1/2 -translate-y-1/2"></div>
-
                     {activeRecord && activeRecord.audioUrl ? (
                       <RealWaveform
                         audioUrl={activeRecord.audioUrl}
@@ -555,7 +616,6 @@ export default function JamRoom() {
                   </div>
                 );
               })}
-
               <div
                 className="absolute top-0 bottom-0 w-px bg-primary z-20 shadow-[0_0_15px_rgba(255,255,255,0.7)] pointer-events-none"
                 style={{ left: `${(playbackTime / maxAudioDuration) * 100}%` }}

@@ -94,10 +94,12 @@ export default function MyRecords() {
               Hãy tìm một phòng Hợp tấu đang thiếu nhạc cụ của bạn và bắt đầu
               thu âm ngay.
             </p>
+            <a href="/">
             <Button variant="default" className="flex items-center gap-2">
               <PlusCircle className="w-4 h-4" />
               Tìm phòng Jam
             </Button>
+            </a>
           </>
         ) : (
           <div>{/* Hiển thị danh sách myRecords ở đây sau này */}</div>

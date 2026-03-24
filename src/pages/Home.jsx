@@ -151,7 +151,7 @@ export default function Home() {
           <div className="pt-4 flex flex-wrap gap-4">
             {isLoggedIn ? (
               <>
-                <a href="/jam-room">
+                <a href="/sheet-library">
                   <Button className="gap-2 h-11 px-6 shadow-lg shadow-primary/25">
                     <PlusCircle className="w-5 h-5" />
                     Tạo phòng Jam mới
