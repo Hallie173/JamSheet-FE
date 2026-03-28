@@ -151,19 +151,10 @@ export default function Home() {
           <div className="pt-4 flex flex-wrap gap-4">
             {isLoggedIn ? (
               <>
-                <a href="/sheet-library">
+                <a href="/sheets-library">
                   <Button className="gap-2 h-11 px-6 shadow-lg shadow-primary/25">
                     <PlusCircle className="w-5 h-5" />
                     Tạo phòng Jam mới
-                  </Button>
-                </a>
-                <a href="/my-records">
-                  <Button
-                    variant="outline"
-                    className="gap-2 h-11 px-6 bg-background/50 backdrop-blur-sm"
-                  >
-                    <Mic2 className="w-5 h-5" />
-                    Thu âm ngẫu hứng
                   </Button>
                 </a>
               </>
