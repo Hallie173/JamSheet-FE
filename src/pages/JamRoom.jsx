@@ -73,6 +73,9 @@ export default function JamRoom() {
   const [countdownBeat, setCountDownBeat] = useState(0);
   const metronomeRef = useRef(null);
 
+  const timeSignatureStr = activeRoom?.timeSignature || "4/4";
+  const beatsPerMeasure = parseInt(timeSignatureStr.split("/")[0]) || 4;
+
   // THUẬT TOÁN ĐẾM 2 Ô NHỊP (COUNT-IN)
   const startRecordingFlow = () => {
     if (!activeRoom || !recordingTrack) return;
@@ -85,8 +88,7 @@ export default function JamRoom() {
     const tempo = activeRoom.tempo || 120;
     const secondsPerBeat = 60.0 / tempo;
 
-    // Giả sử nhịp 4/4 -> 2 ô nhịp = 8 beat
-    const totalCountBeats = 8;
+    const totalCountBeats = beatsPerMeasure * 2;
     let currentBeat = 0;
     let nextNoteTime = audioCtx.currentTime + 0.1; // Bắt đầu sau 100ms
 
@@ -117,7 +119,7 @@ export default function JamRoom() {
         currentBeat < totalCountBeats
       ) {
         // Lên lịch phát tiếng Metronome
-        playClick(nextNoteTime, currentBeat % 4 === 0);
+        playClick(nextNoteTime, currentBeat % beatsPerMeasure === 0);
 
         // Đồng bộ giao diện React (UI) hiển thị con số đếm
         const beatNumber = currentBeat + 1;
@@ -305,7 +307,9 @@ export default function JamRoom() {
         Object.values(sourcesRef.current).forEach((source) => {
           try {
             source.stop();
-          } catch (e) {}
+          } catch (e) {
+            console.log("Lỗi dừng nguồn âm thanh:", e);
+          }
         });
         sourcesRef.current = {};
         if (animationRef.current) cancelAnimationFrame(animationRef.current);
@@ -349,7 +353,9 @@ export default function JamRoom() {
       Object.values(sourcesRef.current).forEach((source) => {
         try {
           source.stop();
-        } catch (e) {}
+        } catch (e) {
+          console.log("Lỗi dừng nguồn âm thanh:", e);
+        }
       });
       sourcesRef.current = {};
 
@@ -805,13 +811,14 @@ export default function JamRoom() {
                     <div className="flex flex-col items-center">
                       <span
                         className={
-                          countdownBeat % 4 === 1
+                          countdownBeat % beatsPerMeasure === 1
                             ? "text-destructive scale-110 transition-transform"
                             : ""
                         }
                       >
-                        {/* Hiển thị: Nhịp 1,2,3,4 của Ô 1 hoặc Ô 2 */}
-                        {countdownBeat > 4 ? countdownBeat - 4 : countdownBeat}
+                        {countdownBeat > beatsPerMeasure
+                          ? countdownBeat - beatsPerMeasure
+                          : countdownBeat}
                       </span>
                     </div>
                   )}

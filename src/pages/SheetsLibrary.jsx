@@ -37,6 +37,7 @@ export default function SheetsLibrary() {
     instrument_tags: "",
     tempo: "",
     genre: "",
+    time_signature: "",
   });
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -46,6 +47,7 @@ export default function SheetsLibrary() {
     instrument_tags: "",
     tempo: "",
     genre: "",
+    time_signature: "",
     file: null,
   });
 
@@ -143,6 +145,7 @@ export default function SheetsLibrary() {
       formData.append("instrument_tags", uploadData.instrument_tags);
       formData.append("tempo", uploadData.tempo);
       formData.append("genre", uploadData.genre);
+      formData.append("time_signature", uploadData.time_signature);
       formData.append("file", uploadData.file);
 
       const res = await fetch("http://localhost:5000/api/sheets", {
@@ -179,6 +182,7 @@ export default function SheetsLibrary() {
       instrument_tags: sheet.instrument_tags.join(", "),
       tempo: sheet.tempo || "",
       genre: sheet.genre || "",
+      time_signature: sheet.time_signature || "4/4",
     });
   };
 
@@ -307,12 +311,13 @@ export default function SheetsLibrary() {
   };
 
   // Component tái sử dụng cho giao diện Thẻ Nhạc Phổ (Card)
-  const SheetCard = ({ sheet, isMySheet }) => {
+  const renderSheetCard = (sheet, isMySheet) => {
     const isLiked = sheet.liked_by.includes(currentUserId);
     const likeCount = sheet.liked_by.length;
 
     return (
       <Card
+        key={sheet.id}
         className="relative hover:border-primary/50 transition-colors cursor-pointer flex flex-col overflow-hidden group shadow-sm bg-card h-[380px]"
         onClick={() => {
           if (editingSheetId !== sheet.id) {
@@ -380,16 +385,35 @@ export default function SheetsLibrary() {
                 }
               />
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Nhạc sĩ (Composer)</Label>
-              <Input
-                size="sm"
-                className="h-8 text-xs"
-                value={editFormData.composer}
-                onChange={(e) =>
-                  setEditFormData({ ...editFormData, composer: e.target.value })
-                }
-              />
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Nhạc sĩ (Composer)</Label>
+                <Input
+                  size="sm"
+                  className="h-8 text-xs"
+                  value={editFormData.composer}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      composer: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Nhịp (Time Signature)</Label>
+                <Input
+                  size="sm"
+                  className="h-8 text-xs"
+                  value={editFormData.time_signature}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      time_signature: e.target.value,
+                    })
+                  }
+                />
+              </div>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Nhạc cụ</Label>
@@ -580,9 +604,7 @@ export default function SheetsLibrary() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {mySheets.map((sheet) => (
-              <SheetCard key={sheet.id} sheet={sheet} isMySheet={true} />
-            ))}
+            {mySheets.map((sheet) => renderSheetCard(sheet, true))}
           </div>
         )}
       </div>
@@ -594,9 +616,7 @@ export default function SheetsLibrary() {
           <h2 className="text-2xl font-bold">Khám phá Cộng đồng</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-2">
-          {exploreSheets.map((sheet) => (
-            <SheetCard key={sheet.id} sheet={sheet} isMySheet={false} />
-          ))}
+          {exploreSheets.map((sheet) => renderSheetCard(sheet, false))}
         </div>
       </div>
 
@@ -630,17 +650,17 @@ export default function SheetsLibrary() {
                   className="cursor-pointer"
                 />
               </div>
+              <div className="space-y-2">
+                <Label>Tên bản nhạc *</Label>
+                <Input
+                  required
+                  value={uploadData.title}
+                  onChange={(e) =>
+                    setUploadData({ ...uploadData, title: e.target.value })
+                  }
+                />
+              </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Tên bản nhạc *</Label>
-                  <Input
-                    required
-                    value={uploadData.title}
-                    onChange={(e) =>
-                      setUploadData({ ...uploadData, title: e.target.value })
-                    }
-                  />
-                </div>
                 <div className="space-y-2">
                   <Label>Nhạc sĩ</Label>
                   <Input
@@ -648,6 +668,19 @@ export default function SheetsLibrary() {
                     value={uploadData.composer}
                     onChange={(e) =>
                       setUploadData({ ...uploadData, composer: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Nhịp (Time Signature)</Label>
+                  <Input
+                    placeholder="VD: 4/4, 3/4"
+                    value={uploadData.time_signature}
+                    onChange={(e) =>
+                      setUploadData({
+                        ...uploadData,
+                        time_signature: e.target.value,
+                      })
                     }
                   />
                 </div>
