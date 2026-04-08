@@ -152,12 +152,11 @@ export default function MyRecords() {
                   key={record._id}
                   className="group relative flex flex-col cursor-pointer border border-border rounded-xl overflow-hidden hover:border-primary/50 transition-colors bg-background shadow-sm hover:shadow-md"
                   onClick={() => {
-                    // Logic xử lý khi click vào bản thu
                     if (record.status === "draft") {
-                      alert(
-                        "Tính năng: Sẽ điều hướng vào trang Preview để lọc AI hoặc tải lên Bàn Mixer...",
-                      );
-                      // Ví dụ: window.location.href = `/jam-room?id=${record.project_id._id}&draftId=${record._id}`
+                      window.location.href = `/jam-room?id=${record.project_id._id}&draftId=${record._id}`;
+                    } else {
+                      alert("Bản thu đã hoàn thành!");
+                      window.location.href = `/jam-room?id=${record.project_id._id}`;
                     }
                   }}
                 >

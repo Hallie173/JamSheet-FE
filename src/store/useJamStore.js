@@ -56,6 +56,21 @@ export const useJamStore = create((set, get) => ({
     }));
   },
 
+  addRecordToTrack: (instrument, newRecord) => {
+    set((state) => ({
+      currentTracks: state.currentTracks.map((t) => {
+        if (t.instrument === instrument) {
+          return {
+            ...t,
+            records: [...t.records, newRecord],
+            activeRecordId: newRecord.id,
+          };
+        }
+        return t;
+      }),
+    }));
+  },
+
   saveMixToCloud: async (projectId) => {
     const { currentTracks } = get();
     const formattedTracksConfig = currentTracks.map((track) => ({
