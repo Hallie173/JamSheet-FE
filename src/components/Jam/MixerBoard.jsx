@@ -59,16 +59,19 @@ export default function MixerBoard() {
   const animationRef = useRef(null);
   const startTimeRef = useRef(0);
   const maxAudioDurationRef = useRef(15);
+  const actualAudioDurationRef = useRef(0);
 
   const activeTrackIds = currentTracks
     .filter((t) => t.activeRecordId)
     .map((t) => t.id);
   const activeDurations = activeTrackIds.map((id) => trackDurations[id] || 0);
+  const actualAudioDuration = activeDurations.length > 0 ? Math.max(...activeDurations) : 0;
   const maxAudioDuration = Math.max(15, ...activeDurations);
 
   useEffect(() => {
     maxAudioDurationRef.current = maxAudioDuration;
-  }, [maxAudioDuration]);
+    actualAudioDurationRef.current = actualAudioDuration;
+  }, [maxAudioDuration, actualAudioDuration]);
 
   // LOGIC TỰ ĐỘNG BẬT BẢN NHÁP
   useEffect(() => {
@@ -186,7 +189,11 @@ export default function MixerBoard() {
           if (isCancelled) return;
           const currentTime =
             audioCtxRef.current.currentTime - startTimeRef.current;
-          if (currentTime >= maxAudioDurationRef.current) {
+
+            const targetStopTime = actualAudioDurationRef.current > 0
+              ? actualAudioDurationRef.current
+              : maxAudioDurationRef.current;
+          if (currentTime >= targetStopTime) {
             setPlaybackTime(0);
             togglePlay();
             return;
