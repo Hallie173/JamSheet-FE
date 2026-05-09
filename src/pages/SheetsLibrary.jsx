@@ -283,9 +283,12 @@ export default function SheetsLibrary() {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:5000/api/jams/find-by-sheet/${sheetId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(
+        `http://localhost:5000/api/jams/find-by-sheet/${sheetId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
@@ -337,6 +340,23 @@ export default function SheetsLibrary() {
     const isLiked = sheet.liked_by.includes(currentUserId);
     const likeCount = sheet.liked_by.length;
 
+    const fileUrl = sheet.images[0] || "";
+    const isPdf = fileUrl.toLowerCase().endsWith(".pdf");
+    const isCloudinary = fileUrl.includes("res.cloudinary.com");
+    
+    // Nếu là PDF trên Cloudinary -> Đổi đuôi sang jpg để lấy ảnh bìa. Nếu không phải, giữ nguyên.
+    const finalImageUrl = (isPdf && isCloudinary) 
+      ? fileUrl.substring(0, fileUrl.lastIndexOf(".")) + ".jpg" 
+      : fileUrl;
+
+    const getThumbnailUrl = (url) => {
+      if (!url) return "https://placehold.co/400x600?text=Trống";
+      if (url.toLowerCase().endsWith(".pdf")) {
+        return url.substring(0, url.lastIndexOf(".")) + ".jpg";
+      }
+      return url;
+    };
+
     return (
       <Card
         key={sheet.id}
@@ -372,7 +392,7 @@ export default function SheetsLibrary() {
             </Button>
           </div>
         )}
-        
+
         {isMySheet && editingSheetId !== sheet.id && (
           <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
             <Button
@@ -514,19 +534,26 @@ export default function SheetsLibrary() {
         ) : (
           <>
             <div className="flex-1 bg-muted relative border-b border-border/50 overflow-hidden flex items-center justify-center">
-              {sheet.images[0]?.toLowerCase().endsWith(".pdf") ? (
+              
+              {isPdf && !isCloudinary ? (
                 <FileText className="w-16 h-16 text-muted-foreground/50 group-hover:scale-110 transition-transform" />
               ) : (
                 <img
-                  src={sheet.images[0]}
+                  src={finalImageUrl}
                   onError={(e) => {
-                    e.target.src =
-                      "https://placehold.co/400x600?text=L%E1%BB%97i+%E1%BA%A3nh";
+                    e.target.src = "https://placehold.co/400x600?text=L%E1%BB%97i+%E1%BA%A3nh";
                   }}
                   className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
                   alt="thumbnail"
                 />
               )}
+
+              {isPdf && (
+                <div className="absolute top-2 right-2 bg-black/60 backdrop-blur text-white text-[10px] px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1 border border-white/10">
+                   <FileText className="w-3 h-3" /> PDF
+                </div>
+              )}
+
               <div className="absolute bottom-2 left-2 flex flex-wrap gap-1 pr-2">
                 {sheet.instrument_tags.map((tag) => (
                   <span

@@ -12,7 +12,8 @@ import {
   Check,
   Loader2,
   X,
-  Heart
+  Heart,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -34,8 +35,10 @@ const getUserIdFromToken = () => {
   const token = localStorage.getItem("token");
   if (!token) return null;
   try {
-    return JSON.parse(atob(token.split('.')[1])).userId;
-  } catch (e) { return null; }
+    return JSON.parse(atob(token.split(".")[1])).userId;
+  } catch (e) {
+    return null;
+  }
 };
 
 export default function MixerBoard() {
@@ -55,6 +58,8 @@ export default function MixerBoard() {
     addNewTrack,
     toggleLikeRecord,
   } = useJamStore();
+
+  const isArchived = activeRoom?.status === "archived";
 
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [playbackTime, setPlaybackTime] = useState(0);
@@ -418,7 +423,7 @@ export default function MixerBoard() {
             size="sm"
             className="gap-2 shadow-md shadow-primary/20"
             onClick={handleSaveMix}
-            disabled={isSaving}
+            disabled={isSaving || isArchived}
           >
             {isSaving ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -429,6 +434,17 @@ export default function MixerBoard() {
           </Button>
         </div>
       </div>
+
+      {isArchived && (
+        <div className="bg-amber-500/10 border-y border-amber-500/30 px-6 py-2.5 flex items-center justify-center gap-3 shrink-0 z-20">
+          <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+          <p className="text-amber-500/90 text-sm font-medium">
+            <strong className="text-amber-500">Phòng thu đã đóng băng:</strong>{" "}
+            Nhạc phổ gốc đã bị gỡ. Bạn vẫn có thể nghe các bản phối nhưng không
+            thể thu âm thêm.
+          </p>
+        </div>
+      )}
 
       <div className="flex flex-1 overflow-hidden relative">
         <div className="w-72 border-r border-border bg-background flex flex-col z-10 overflow-y-auto shrink-0 shadow-[4px_0_15px_rgba(0,0,0,0.1)]">
@@ -466,21 +482,24 @@ export default function MixerBoard() {
                         </span>
                       </div>
                     </div>
-                    <div
-                      className="absolute top-2 right-2 z-40 flex items-center justify-end bg-white/80 dark:bg-white/20 backdrop-blur-md border border-black/10 dark:border-white/20 hover:bg-foreground hover:text-background rounded-full h-8 w-8 overflow-hidden transition-all duration-300 hover:w-[110px] hover:bg-white dark:hover:bg-white hover:text-black cursor-pointer shadow-md group/add"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isPlaying) handleStop();
-                        setRecordingTrack(track);
-                      }}
-                    >
-                      <span className="text-xs font-semibold whitespace-nowrap opacity-0 group-hover/add:opacity-100 transition-opacity duration-300">
-                        Bản thu mới
-                      </span>
-                      <div className="w-8 h-8 flex items-center justify-center shrink-0">
-                        <Plus className="w-4 h-4" />
+
+                    {!isArchived && (
+                      <div
+                        className="absolute top-2 right-2 z-40 flex items-center justify-end bg-white/80 dark:bg-white/20 backdrop-blur-md border border-black/10 dark:border-white/20 hover:bg-foreground hover:text-background rounded-full h-8 w-8 overflow-hidden transition-all duration-300 hover:w-[110px] hover:bg-white dark:hover:bg-white hover:text-black cursor-pointer shadow-md group/add"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isPlaying) handleStop();
+                          setRecordingTrack(track);
+                        }}
+                      >
+                        <span className="text-xs font-semibold whitespace-nowrap opacity-0 group-hover/add:opacity-100 transition-opacity duration-300">
+                          Bản thu mới
+                        </span>
+                        <div className="w-8 h-8 flex items-center justify-center shrink-0">
+                          <Plus className="w-4 h-4" />
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                   <div className="mt-auto flex items-center gap-2.5">
                     <DropdownMenu>
@@ -528,30 +547,38 @@ export default function MixerBoard() {
                     </DropdownMenu>
 
                     {(() => {
-                      const activeRecord = track.records.find((r) => r.id === track.activeRecordId);
-                      const isLikedByMe = activeRecord?.liked_by?.includes(currentUserId);
-                      
+                      const activeRecord = track.records.find(
+                        (r) => r.id === track.activeRecordId,
+                      );
+                      const isLikedByMe =
+                        activeRecord?.liked_by?.includes(currentUserId);
+
                       return activeRecord ? (
                         <Button
                           variant="ghost"
                           size="sm"
                           className={`h-7 px-2 flex gap-1 transition-colors ${
-                            isLikedByMe ? "text-red-500 hover:text-red-600 hover:bg-red-500/10" : "text-muted-foreground"
+                            isLikedByMe
+                              ? "text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                              : "text-muted-foreground"
                           }`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (!currentUserId) return alert("Vui lòng đăng nhập để thả tim!");
+                            if (!currentUserId)
+                              return alert("Vui lòng đăng nhập để thả tim!");
                             toggleLikeRecord(track.instrument, activeRecord.id);
                           }}
                         >
-                          <Heart className={`w-3.5 h-3.5 ${isLikedByMe ? "fill-current" : ""}`} />
+                          <Heart
+                            className={`w-3.5 h-3.5 ${isLikedByMe ? "fill-current" : ""}`}
+                          />
                           <span className="text-[10px] font-bold">
                             {activeRecord.liked_by?.length || 0}
                           </span>
                         </Button>
                       ) : null;
                     })()}
-                    
+
                     <div className="flex-1 px-1 flex items-center gap-2">
                       <Volume2 className="w-4 h-4 text-foreground/70 shrink-0" />
                       <Slider
@@ -569,47 +596,48 @@ export default function MixerBoard() {
               </Card>
             ))}
             <div className="pt-1 pb-4">
-              {isAddingTrack ? (
-                <div className="flex flex-col gap-2 bg-muted/30 p-2.5 rounded-lg border border-border shadow-inner animate-in fade-in zoom-in-95 duration-200">
-                  <input
-                    type="text"
-                    placeholder="VD: Violin..."
-                    className="w-full text-sm font-medium bg-background border border-border rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary"
-                    value={newInstrumentName}
-                    onChange={(e) => setNewInstrumentName(e.target.value)}
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleAddNewTrack();
-                      if (e.key === "Escape") setIsAddingTrack(false);
-                    }}
-                  />
-                  <div className="flex items-center gap-2 mt-1">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 h-7 text-xs"
-                      onClick={() => setIsAddingTrack(false)}
-                    >
-                      Hủy
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="flex-1 h-7 text-xs"
-                      onClick={handleAddNewTrack}
-                    >
-                      Thêm Kệ
-                    </Button>
+              {!isArchived &&
+                (isAddingTrack ? (
+                  <div className="flex flex-col gap-2 bg-muted/30 p-2.5 rounded-lg border border-border shadow-inner animate-in fade-in zoom-in-95 duration-200">
+                    <input
+                      type="text"
+                      placeholder="VD: Violin..."
+                      className="w-full text-sm font-medium bg-background border border-border rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary"
+                      value={newInstrumentName}
+                      onChange={(e) => setNewInstrumentName(e.target.value)}
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleAddNewTrack();
+                        if (e.key === "Escape") setIsAddingTrack(false);
+                      }}
+                    />
+                    <div className="flex items-center gap-2 mt-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 h-7 text-xs"
+                        onClick={() => setIsAddingTrack(false)}
+                      >
+                        Hủy
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="flex-1 h-7 text-xs"
+                        onClick={handleAddNewTrack}
+                      >
+                        Thêm Kệ
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <Button
-                  variant="outline"
-                  className="w-full border-dashed hover:border-primary hover:text-primary transition-colors h-10"
-                  onClick={() => setIsAddingTrack(true)}
-                >
-                  <Plus className="w-4 h-4 mr-1.5" /> Thêm kệ nhạc cụ
-                </Button>
-              )}
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="w-full border-dashed hover:border-primary hover:text-primary transition-colors h-10"
+                    onClick={() => setIsAddingTrack(true)}
+                  >
+                    <Plus className="w-4 h-4 mr-1.5" /> Thêm kệ nhạc cụ
+                  </Button>
+                ))}
             </div>
           </div>
         </div>
@@ -654,14 +682,17 @@ export default function MixerBoard() {
                       />
                     ) : (
                       <div
-                        className="absolute inset-2 border-2 border-dashed border-muted flex items-center justify-center rounded-md bg-muted/10 text-muted-foreground text-sm font-medium pointer-events-auto transition-colors hover:border-border hover:bg-muted/20 cursor-pointer z-30"
+                        className={`absolute inset-2 border-2 border-dashed flex items-center justify-center rounded-md text-sm font-medium z-30 ${isArchived ? "border-muted/30 bg-muted/5 text-muted-foreground/30 cursor-not-allowed" : "border-muted bg-muted/10 text-muted-foreground hover:border-border hover:bg-muted/20 cursor-pointer pointer-events-auto transition-colors"}`}
                         onClick={(e) => {
+                          if (isArchived) return; // CHẶN CLICK
                           e.stopPropagation();
                           if (isPlaying) handleStop();
                           setRecordingTrack(track);
                         }}
                       >
-                        + Nhấp để nộp bản thu {track.instrument}
+                        {isArchived
+                          ? "Kệ trống (Đã đóng)"
+                          : `+ Nhấp để nộp bản thu ${track.instrument}`}
                       </div>
                     )}
                   </div>
