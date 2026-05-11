@@ -7,6 +7,7 @@ export const useJamStore = create((set, get) => ({
   masterVolume: 100,
   isLoadingRoom: false,
   errorMsg: null,
+  pendingTrackId: null,
 
   fetchJamRoomData: async (roomId) => {
     set({ isLoadingRoom: true, errorMsg: null });
@@ -21,12 +22,38 @@ export const useJamStore = create((set, get) => ({
       if (!response.ok)
         throw new Error(data.message || "Không thể tải phòng Jam");
 
-      set({
+      const newState = {
         activeRoom: data,
         currentTracks: data.tracks,
         isPlaying: false,
         isLoadingRoom: false,
-      });
+      };
+
+      // Nếu có pending track ID, tự động chọn track đó
+      const { pendingTrackId } = get();
+      if (pendingTrackId) {
+        // Tìm track có record với ID bằng pendingTrackId
+        const trackWithRecord = data.tracks.find((track) =>
+          track.records?.some((record) => record.id === pendingTrackId || record._id === pendingTrackId)
+        );
+
+        if (trackWithRecord) {
+          const recordId = trackWithRecord.records.find(
+            (record) => record.id === pendingTrackId || record._id === pendingTrackId
+          )?.id || trackWithRecord.records.find(
+            (record) => record.id === pendingTrackId || record._id === pendingTrackId
+          )?._id;
+
+          newState.currentTracks = data.tracks.map((t) =>
+            t.id === trackWithRecord.id ? { ...t, activeRecordId: recordId } : t,
+          );
+        }
+
+        // Reset pending ID sau khi xử lý
+        newState.pendingTrackId = null;
+      }
+
+      set(newState);
     } catch (error) {
       console.error(error);
       set({ errorMsg: error.message, isLoadingRoom: false });
@@ -34,6 +61,8 @@ export const useJamStore = create((set, get) => ({
   },
 
   togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
+
+  setPendingTrackId: (trackId) => set({ pendingTrackId: trackId }),
 
   changeActiveRecord: (trackId, recordId) => {
     set((state) => ({

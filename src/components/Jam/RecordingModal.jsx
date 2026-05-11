@@ -334,7 +334,8 @@ const CustomPreviewPlayer = ({
             className="w-full"
           />
           <p className="text-[10px] text-muted-foreground text-center italic">
-            *Kéo thanh trượt sao cho đỉnh sóng âm bản thu khớp với vạch Metronome
+            *Kéo thanh trượt sao cho đỉnh sóng âm bản thu khớp với vạch
+            Metronome
           </p>
         </div>
       </div>
@@ -365,6 +366,69 @@ export default function RecordingModal({
   const metronomeRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+
+  const sheetContainerRef = useRef(null);
+  const scrollAnimationRef = useRef(null);
+  const lastScrollTime = useRef(0);
+  
+  // KHAI BÁO BIẾN LƯU VỊ TRÍ CUỘN SỐ THỰC
+  const exactScrollTopRef = useRef(0);
+
+  // HIỆU ỨNG TỰ ĐỘNG CUỘN (AUTO-SCROLL)
+  useEffect(() => {
+    if (recordingStatus === "recording") {
+      lastScrollTime.current = performance.now();
+      
+      // Đồng bộ biến số thực với vị trí cuộn hiện tại của khung chứa
+      exactScrollTopRef.current = sheetContainerRef.current?.scrollTop || 0;
+      
+      const scroll = (time) => {
+        const dt = (time - lastScrollTime.current) / 1000;
+        lastScrollTime.current = time;
+        
+        if (sheetContainerRef.current) {
+          const currentScroll = sheetContainerRef.current.scrollTop;
+
+          // 1. CHỐNG GIẬT KHI CUỘN TAY: Nếu người dùng vừa tự cuộn chuột (lệch > 2px), ta đồng bộ lại biến
+          if (Math.abs(currentScroll - exactScrollTopRef.current) > 2) {
+            exactScrollTopRef.current = currentScroll;
+          }
+
+          // 2. TÍCH LŨY SỐ THẬP PHÂN (Để giữ độ mượt ở tốc độ cực thấp)
+          exactScrollTopRef.current += 40 * autoScrollSpeed * dt;
+
+          // 3. FIX LỖI ĐỨNG YÊN: Gán trực tiếp giá trị số thực. Trình duyệt sẽ tự làm tròn hiển thị 
+          // nhưng biến exactScrollTopRef vẫn lưu số thập phân để tiếp tục cộng dồn ở khung hình sau.
+          sheetContainerRef.current.scrollTop = exactScrollTopRef.current;
+        }
+        scrollAnimationRef.current = requestAnimationFrame(scroll);
+      };
+      
+      scrollAnimationRef.current = requestAnimationFrame(scroll);
+    } else {
+      if (scrollAnimationRef.current) {
+        cancelAnimationFrame(scrollAnimationRef.current);
+        scrollAnimationRef.current = null;
+      }
+    }
+    
+    return () => {
+      if (scrollAnimationRef.current) cancelAnimationFrame(scrollAnimationRef.current);
+    };
+  }, [recordingStatus, autoScrollSpeed]);
+
+  // THÊM LOGIC ĐỔI ĐUÔI PDF SANG JPG CHO CLOUDINARY
+  const sheetImageUrl = useMemo(() => {
+    const url = activeRoom?.sheetUrl;
+    if (!url) return "";
+    if (
+      url.toLowerCase().endsWith(".pdf") &&
+      url.includes("res.cloudinary.com")
+    ) {
+      return url.substring(0, url.lastIndexOf(".")) + ".jpg";
+    }
+    return url;
+  }, [activeRoom?.sheetUrl]);
 
   const timeSignatureStr = activeRoom?.timeSignature || "4/4";
   const beatsPerMeasure = parseInt(timeSignatureStr.split("/")[0]) || 4;
@@ -412,6 +476,10 @@ export default function RecordingModal({
 
     setRecordingStatus("counting");
     setCountDownBeat(1);
+
+    if (sheetContainerRef.current) {
+      sheetContainerRef.current.scrollTop = 0;
+    }
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const tempo = activeRoom.tempo || 120;
@@ -561,7 +629,7 @@ export default function RecordingModal({
       status === "published" ? `Take ${recordingTrack.instrument}` : "Bản nháp",
     );
     setIsNameModalOpen(true);
-  }; // ĐÃ ĐÓNG NGOẶC HÀM NÀY
+  }; 
 
   const handleClose = () => {
     stopRecordingFlow();
@@ -572,29 +640,63 @@ export default function RecordingModal({
   return (
     <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md flex animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
       {/* NỬA TRÁI: NHẠC PHỔ */}
-      <div className="w-1/2 lg:w-3/5 border-r border-border p-4 flex flex-col h-full relative bg-muted/30">
-        <div className="flex items-center justify-between mb-2">
+      <div className="flex-1 border-r border-border p-4 flex flex-col h-full relative bg-muted/30">
+        
+        {/* THANH ĐIỀU KHIỂN TỐC ĐỘ CUỘN */}
+        <div className="flex items-center justify-between mb-2 shrink-0">
           <h3 className="font-bold text-lg flex items-center gap-2">
-            <FileText className="w-5 h-5 text-primary" /> Nhạc phổ:{" "}
-            {activeRoom?.title}
+            <FileText className="w-5 h-5 text-primary" /> Nhạc phổ
           </h3>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Label>Tốc độ cuộn:</Label>
             <Slider
               value={[autoScrollSpeed]}
-              max={3}
-              min={0.5}
+              max={2}
+              min={0.1}
               step={0.1}
               onValueChange={(val) => setAutoScrollSpeed(val[0])}
-              className="w-24"
+              className="w-24 cursor-pointer"
             />
-            <span className="w-8 font-mono">{autoScrollSpeed}x</span>
+            <span className="w-8 font-mono font-medium">{autoScrollSpeed}x</span>
           </div>
         </div>
-        <div className="flex-1 bg-white rounded-md shadow-inner border border-border/50 overflow-hidden relative">
-          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground flex-col gap-2">
-            <FileText className="w-12 h-12 opacity-20" />
-            <span>Khu vực cuộn Nhạc phổ</span>
+
+        <div className="flex-1 flex flex-col bg-white rounded-md shadow-inner border border-border/50 overflow-hidden relative">
+          <div
+            ref={sheetContainerRef}
+            className="flex-1 h-full bg-white rounded-md shadow-inner border border-border/50 overflow-y-auto custom-scrollbar relative p-4"
+          >
+            {activeRoom?.sheetUrls && activeRoom.sheetUrls.length > 0 ? (
+              <div className="flex flex-col gap-4">
+                {activeRoom.sheetUrls.map((url, index) => (
+                  <img
+                    key={index}
+                    src={url}
+                    alt={`Page ${index + 1}`}
+                    className="w-full h-auto shadow-sm border border-muted pointer-events-none select-none"
+                  />
+                ))}
+              </div>
+            ) : activeRoom?.sheetUrl ? (
+              activeRoom.sheetUrl.toLowerCase().endsWith(".pdf") ? (
+                <iframe
+                  src={activeRoom.sheetUrl}
+                  title="Sheet Music PDF"
+                  className="w-full h-full rounded-md"
+                />
+              ) : (
+                <img 
+                  src={activeRoom.sheetUrl} 
+                  alt="Sheet Music" 
+                  className="w-full h-auto object-contain pointer-events-none"
+                />
+              )
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground flex-col gap-2">
+                <FileText className="w-12 h-12 opacity-20" />
+                <span>Không tìm thấy dữ liệu nhạc phổ</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

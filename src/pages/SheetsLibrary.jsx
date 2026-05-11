@@ -29,7 +29,7 @@ export default function SheetsLibrary() {
   const [exploreSheets, setExploreSheets] = useState([]);
   const [selectedSheet, setSelectedSheet] = useState(null);
   const [editingSheetId, setEditingSheetId] = useState(null);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const exploreRef = React.useRef(null);
 
   const [editFormData, setEditFormData] = useState({
     title: "",
@@ -65,18 +65,51 @@ export default function SheetsLibrary() {
     if (isLoggedIn) fetchMySheets();
   }, [isLoggedIn]);
 
+  // Theo dõi thay đổi URL search parameters để tự động tìm kiếm
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.toString()) {
+      fetchExploreSheets();
+    }
+  }, [window.location.search]);
+
   const formatSheetData = (sheet) => ({
     ...sheet,
     id: sheet._id,
-    images: [sheet.file_url],
+    // LẤY TRANG ĐẦU TIÊN LÀM ẢNH BÌA
+    thumbnail:
+      sheet.file_urls && sheet.file_urls.length > 0 ? sheet.file_urls[0] : (sheet.file_url || ""),
+    sheetUrls: sheet.file_urls || [],
     liked_by: sheet.liked_by || [],
   });
 
   const fetchExploreSheets = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/sheets/explore");
+      // BẮT THAM SỐ TỪ URL (Lỗ hổng tìm kiếm đã được vá)
+      const params = new URLSearchParams(window.location.search);
+      const queryString = params.toString();
+
+      const endpoint = queryString
+        ? `http://localhost:5000/api/sheets/search?${queryString}`
+        : `http://localhost:5000/api/sheets/explore`;
+
+      const res = await fetch(endpoint);
       const data = await res.json();
-      if (res.ok) setExploreSheets(data.map(formatSheetData));
+      if (res.ok) {
+        setExploreSheets(data.map(formatSheetData));
+
+        // Tự động cuộn xuống phần khám phá nếu người dùng đang tìm kiếm
+        if (queryString) {
+          setTimeout(() => {
+            if (exploreRef.current) {
+              exploreRef.current.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            }
+          }, 100);
+        }
+      }
     } catch (error) {
       console.error(error);
     }
@@ -136,6 +169,8 @@ export default function SheetsLibrary() {
     e.preventDefault();
     if (!uploadData.file) return alert("Vui lòng chọn file nhạc phổ!");
     if (!uploadData.title) return alert("Vui lòng nhập tên bài!");
+    if (!uploadData.time_signature) return alert("Vui lòng nhập Nhịp!");
+    if (!uploadData.instrument_tags) return alert("Vui lòng nhập Nhạc cụ!");
 
     try {
       const token = localStorage.getItem("token");
@@ -165,6 +200,7 @@ export default function SheetsLibrary() {
         instrument_tags: "",
         tempo: "",
         genre: "",
+        time_signature: "",
         file: null,
       });
       alert("Tải lên thành công!");
@@ -235,7 +271,10 @@ export default function SheetsLibrary() {
 
   const handleDownload = (e, sheet) => {
     e.stopPropagation();
-    window.open(sheet.images[0], "_blank");
+    const downloadUrl = sheet.sheetUrls?.[0] || sheet.file_url;
+    if (downloadUrl) {
+      window.open(downloadUrl, "_blank");
+    }
   };
 
   const handleJamNow = async (e, sheet) => {
@@ -265,7 +304,7 @@ export default function SheetsLibrary() {
         sheet_id: sheet.id,
         title: sheet.title,
         tempo: sheet.tempo,
-        time_signature: "",
+        time_signature: sheet.time_signature || "4/4",
         required_instruments: sheet.instrument_tags
           ? sheet.instrument_tags.join(", ")
           : "",
@@ -340,22 +379,16 @@ export default function SheetsLibrary() {
     const isLiked = sheet.liked_by.includes(currentUserId);
     const likeCount = sheet.liked_by.length;
 
-    const fileUrl = sheet.images[0] || "";
+    // ĐÃ SỬA: Lấy fileUrl an toàn từ mảng sheetUrls hoặc file_url cũ
+    const fileUrl = sheet.sheetUrls?.[0] || sheet.file_url || "";
     const isPdf = fileUrl.toLowerCase().endsWith(".pdf");
     const isCloudinary = fileUrl.includes("res.cloudinary.com");
-    
-    // Nếu là PDF trên Cloudinary -> Đổi đuôi sang jpg để lấy ảnh bìa. Nếu không phải, giữ nguyên.
-    const finalImageUrl = (isPdf && isCloudinary) 
-      ? fileUrl.substring(0, fileUrl.lastIndexOf(".")) + ".jpg" 
-      : fileUrl;
 
-    const getThumbnailUrl = (url) => {
-      if (!url) return "https://placehold.co/400x600?text=Trống";
-      if (url.toLowerCase().endsWith(".pdf")) {
-        return url.substring(0, url.lastIndexOf(".")) + ".jpg";
-      }
-      return url;
-    };
+    // Nếu là PDF trên Cloudinary -> Đổi đuôi sang jpg để lấy ảnh bìa. Nếu không phải, giữ nguyên.
+    const finalImageUrl =
+      isPdf && isCloudinary
+        ? fileUrl.substring(0, fileUrl.lastIndexOf(".")) + ".jpg"
+        : fileUrl;
 
     return (
       <Card
@@ -364,7 +397,6 @@ export default function SheetsLibrary() {
         onClick={() => {
           if (editingSheetId !== sheet.id) {
             setSelectedSheet(sheet);
-            setCurrentImageIndex(0);
           }
         }}
       >
@@ -457,10 +489,11 @@ export default function SheetsLibrary() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Nhịp (Time Signature)</Label>
+                <Label className="text-xs">Nhịp (Time Signature) *</Label>
                 <Input
                   size="sm"
                   className="h-8 text-xs"
+                  required
                   value={editFormData.time_signature}
                   onChange={(e) =>
                     setEditFormData({
@@ -472,10 +505,11 @@ export default function SheetsLibrary() {
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Nhạc cụ</Label>
+              <Label className="text-xs">Nhạc cụ *</Label>
               <Input
                 size="sm"
                 className="h-8 text-xs"
+                required
                 value={editFormData.instrument_tags}
                 onChange={(e) =>
                   setEditFormData({
@@ -498,10 +532,11 @@ export default function SheetsLibrary() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">BPM</Label>
+                <Label className="text-xs">Tempo (BPM) *</Label>
                 <Input
                   size="sm"
                   type="number"
+                  required
                   className="h-8 text-xs"
                   value={editFormData.tempo}
                   onChange={(e) =>
@@ -534,14 +569,14 @@ export default function SheetsLibrary() {
         ) : (
           <>
             <div className="flex-1 bg-muted relative border-b border-border/50 overflow-hidden flex items-center justify-center">
-              
               {isPdf && !isCloudinary ? (
                 <FileText className="w-16 h-16 text-muted-foreground/50 group-hover:scale-110 transition-transform" />
               ) : (
                 <img
-                  src={finalImageUrl}
+                  src={finalImageUrl || "https://placehold.co/400x600?text=No+Image"}
                   onError={(e) => {
-                    e.target.src = "https://placehold.co/400x600?text=L%E1%BB%97i+%E1%BA%A3nh";
+                    e.target.src =
+                      "https://placehold.co/400x600?text=L%E1%BB%97i+%E1%BA%A3nh";
                   }}
                   className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
                   alt="thumbnail"
@@ -550,7 +585,7 @@ export default function SheetsLibrary() {
 
               {isPdf && (
                 <div className="absolute top-2 right-2 bg-black/60 backdrop-blur text-white text-[10px] px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1 border border-white/10">
-                   <FileText className="w-3 h-3" /> PDF
+                  <FileText className="w-3 h-3" /> PDF
                 </div>
               )}
 
@@ -673,7 +708,7 @@ export default function SheetsLibrary() {
       </div>
 
       {/* KHU VỰC CỘNG ĐỒNG */}
-      <div className="space-y-4 pt-6">
+      <div ref={exploreRef} className="space-y-4 pt-6">
         <div className="flex items-center gap-2">
           <Search className="w-5 h-5 text-primary" />
           <h2 className="text-2xl font-bold">Khám phá Cộng đồng</h2>
@@ -735,8 +770,9 @@ export default function SheetsLibrary() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Nhịp (Time Signature)</Label>
+                  <Label>Nhịp (Time Signature) *</Label>
                   <Input
+                    required
                     placeholder="VD: 4/4, 3/4"
                     value={uploadData.time_signature}
                     onChange={(e) =>
@@ -749,8 +785,9 @@ export default function SheetsLibrary() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Nhạc cụ</Label>
+                <Label>Nhạc cụ *</Label>
                 <Input
+                  required
                   placeholder="VD: Piano, Guitar Acoustic..."
                   value={uploadData.instrument_tags}
                   onChange={(e) =>
@@ -773,7 +810,7 @@ export default function SheetsLibrary() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Nhịp độ (BPM) *</Label>
+                  <Label>Tempo (BPM) *</Label>
                   <Input
                     type="number"
                     required
@@ -799,7 +836,7 @@ export default function SheetsLibrary() {
         </div>
       )}
 
-      {/* MODAL XEM ẢNH TOÀN MÀN HÌNH */}
+      {/* MODAL XEM ẢNH TOÀN MÀN HÌNH (Đã nâng cấp hỗ trợ nhiều trang) */}
       {selectedSheet && (
         <div className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center animate-in fade-in duration-200">
           <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center text-white z-50 bg-gradient-to-b from-black/80 to-transparent">
@@ -812,7 +849,7 @@ export default function SheetsLibrary() {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              {!selectedSheet.images[0]?.toLowerCase().endsWith(".pdf") && (
+              {!selectedSheet.sheetUrls?.[0]?.toLowerCase().endsWith(".pdf") && !selectedSheet.file_url?.toLowerCase().endsWith(".pdf") && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -835,16 +872,28 @@ export default function SheetsLibrary() {
             </div>
           </div>
 
-          <div className="relative w-full h-full flex items-center justify-center p-4 sm:p-12">
-            {selectedSheet.images[0]?.toLowerCase().endsWith(".pdf") ? (
+          <div className="relative w-full h-full flex flex-col items-center justify-start p-4 pt-20 sm:p-12 overflow-y-auto custom-scrollbar gap-4">
+            {selectedSheet.sheetUrls && selectedSheet.sheetUrls.length > 0 ? (
+              // Nếu mảng hình ảnh tồn tại, render dọc toàn bộ các trang (Giúp đọc Full PDF thoải mái)
+              selectedSheet.sheetUrls.map((url, index) => (
+                <img
+                  key={index}
+                  src={url}
+                  alt={`Page ${index + 1}`}
+                  className="max-w-full h-auto object-contain rounded-md shadow-2xl select-none"
+                />
+              ))
+            ) : selectedSheet.file_url?.toLowerCase().endsWith(".pdf") ? (
+              // Backup dành cho dữ liệu cũ (Dùng iframe)
               <iframe
-                src={selectedSheet.images[0]}
+                src={selectedSheet.file_url}
                 className="w-full h-full rounded-md shadow-2xl bg-white"
                 title={selectedSheet.title}
               ></iframe>
             ) : (
+              // Backup ảnh đơn
               <img
-                src={selectedSheet.images[0]}
+                src={selectedSheet.file_url}
                 alt="Sheet"
                 className="max-h-full max-w-full object-contain rounded-md shadow-2xl select-none"
               />

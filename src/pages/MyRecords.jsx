@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Mic2, Heart, Disc, PlusCircle, Sparkles, Loader2 } from "lucide-react";
+import { Mic2, Heart, Disc, PlusCircle, Sparkles, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function MyRecords() {
@@ -63,6 +63,24 @@ export default function MyRecords() {
       .toString()
       .padStart(2, "0");
     return `${m}:${s}`;
+  };
+
+  // Xóa bản thu
+  const handleDelete = async (e, trackId) => {
+    e.stopPropagation();
+    if (window.confirm("Bạn có chắc chắn muốn xóa bản thu này?")) {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`http://localhost:5000/api/jams/tracks/${trackId}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error("Lỗi server");
+        setMyRecords(myRecords.filter((record) => record._id !== trackId));
+      } catch (error) {
+        alert("Lỗi xóa bản thu: " + error.message);
+      }
+    }
   };
 
   return (
@@ -130,13 +148,30 @@ export default function MyRecords() {
                   key={record._id}
                   className="group relative flex flex-col cursor-pointer border border-border rounded-xl overflow-hidden hover:border-primary/50 transition-colors bg-background shadow-sm hover:shadow-md"
                   onClick={() => {
+                    // Thêm bảo vệ: Nếu phòng Jam chứa bản thu đã bị xóa hoàn toàn khỏi Database
+                    if (!record.project_id) {
+                      alert("Phòng Jam chứa bản thu này đã bị xóa hoàn toàn khỏi hệ thống!");
+                      return;
+                    }
                     if (record.status === "draft") {
-                      window.location.href = `/jam-room?id=${record.project_id?._id}&draftId=${record._id}`;
+                      window.location.href = `/jam-room?id=${record.project_id._id}&draftId=${record._id}&trackId=${record._id}`;
                     } else {
-                      window.location.href = `/jam-room?id=${record.project_id?._id}`;
+                      window.location.href = `/jam-room?id=${record.project_id._id}&trackId=${record._id}`;
                     }
                   }}
                 >
+                  {/* NÚT XÓA */}
+                  <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-8 w-8 bg-background/90 hover:bg-background shadow-md backdrop-blur-sm hover:text-destructive"
+                      onClick={(e) => handleDelete(e, record._id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+
                   {/* TAG BẢN NHÁP GÓC TRÊN */}
                   {record.status === "draft" && (
                     <div className="absolute top-2 right-2 bg-amber-500 text-white text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-md z-10 shadow-sm backdrop-blur-sm">
@@ -212,9 +247,13 @@ export default function MyRecords() {
               <div
                 key={record._id}
                 className="group flex flex-col cursor-pointer border border-border rounded-xl overflow-hidden hover:border-primary/50 transition-colors bg-card shadow-sm hover:shadow-md"
-                onClick={() =>
-                  (window.location.href = `/jam-room?id=${record.project_id?._id}`)
-                }
+                onClick={() => {
+                  if (!record.project_id) {
+                    alert("Phòng Jam chứa bản thu này đã bị xóa hoàn toàn khỏi hệ thống!");
+                    return;
+                  }
+                  window.location.href = `/jam-room?id=${record.project_id._id}&trackId=${record._id}`;
+                }}
               >
                 <div className="aspect-square bg-muted/30 flex items-center justify-center group-hover:bg-muted/50 transition-colors">
                   <Disc className="w-24 h-24 sm:w-32 sm:h-32 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
