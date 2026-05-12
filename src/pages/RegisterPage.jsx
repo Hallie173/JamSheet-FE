@@ -1,18 +1,17 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
-import whiteLogo from "@/assets/white-logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
+import AuthHeader from "@/components/ui/auth-header";
+import AlertMessage from "@/components/ui/alert-message";
+import { getApiUrl, API_ENDPOINTS } from "@/lib/constants";
 
 export default function RegisterPage() {
   const [username, setUsername] = React.useState("");
@@ -48,7 +47,7 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/register", {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.REGISTER), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -74,30 +73,14 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-3 flex flex-col items-center text-center">
-          
-          <a href="/">
-            <img
-              src={whiteLogo}
-              alt="JamSheet Logo"
-              className="w-12 h-12 rounded-full object-cover mb-2"
-            />
-          </a>
-          <CardTitle className="text-2xl font-bold">
-            Tạo tài khoản mới
-          </CardTitle>
-          <CardDescription>
-            Bắt đầu hành trình sáng tạo âm nhạc của bạn
-          </CardDescription>
-        </CardHeader>
+        <AuthHeader
+          title="Tạo tài khoản mới"
+          description="Bắt đầu hành trình sáng tạo âm nhạc của bạn"
+        />
 
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
-            {error && (
-              <div className="p-3 text-sm font-medium text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
-                {error}
-              </div>
-            )}
+            <AlertMessage message={error} type="error" />
             <div className="space-y-2">
               <Label htmlFor="username">Tên hiển thị (Username)</Label>
               <Input
@@ -134,7 +117,7 @@ export default function RegisterPage() {
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
@@ -159,7 +142,7 @@ export default function RegisterPage() {
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
                   {showConfirmPassword ? (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Mic2, Heart, Disc, PlusCircle, Sparkles, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getApiUrl, API_ENDPOINTS } from "@/lib/constants";
 
 export default function MyRecords() {
   const isLoggedIn = !!localStorage.getItem("token");
@@ -24,7 +25,7 @@ export default function MyRecords() {
   const fetchMyRecords = async () => {
     setIsLoadingMyRecords(true);
     try {
-      const response = await fetch("http://localhost:5000/api/jams/my-tracks", {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.JAMS_MY_TRACKS), {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -43,7 +44,7 @@ export default function MyRecords() {
   const fetchExploreRecords = async () => {
     setIsLoadingExplore(true);
     try {
-      const response = await fetch("http://localhost:5000/api/jams/top-tracks");
+      const response = await fetch(getApiUrl(API_ENDPOINTS.JAMS_TOP_TRACKS));
       if (response.ok) {
         const data = await response.json();
         setExploreRecords(data);
@@ -71,7 +72,7 @@ export default function MyRecords() {
     if (window.confirm("Bạn có chắc chắn muốn xóa bản thu này?")) {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(`http://localhost:5000/api/jams/tracks/${trackId}`, {
+        const res = await fetch(getApiUrl(API_ENDPOINTS.JAMS_TRACK_DELETE(trackId)), {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -84,7 +85,7 @@ export default function MyRecords() {
   };
 
   return (
-    <div className="flex flex-col h-full space-y-8 pb-10">
+    <div className="flex flex-col h-full space-y-8 pb-32 mb-8">
       {/* Header Trang */}
       <div className="flex items-center justify-between">
         <div>
@@ -291,6 +292,9 @@ export default function MyRecords() {
           </div>
         )}
       </div>
+
+      {/* Spacer dự phòng để không dính lề */}
+      <div className="w-full h-20 shrink-0"></div>
     </div>
   );
 }

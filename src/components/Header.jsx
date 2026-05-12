@@ -10,6 +10,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import whiteLogo from "@/assets/white-logo.png";
+import { getApiUrl, API_ENDPOINTS } from "@/lib/constants";
 
 export default function Header() {
   const isLoggedIn = !!localStorage.getItem("token");
@@ -27,19 +28,9 @@ export default function Header() {
   const [notifications, setNotifications] = useState([]);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
-  // Lấy thông báo từ Backend khi đăng nhập
-  useEffect(() => {
-    if (isLoggedIn) {
-      fetchNotifications();
-      // Tùy chọn: Đặt interval để polling thông báo tự động mỗi 30s
-      const interval = setInterval(fetchNotifications, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [isLoggedIn]);
-
-  const fetchNotifications = async () => {
+    const fetchNotifications = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/notifications", {
+      const res = await fetch(getApiUrl(API_ENDPOINTS.NOTIFICATIONS), {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
       if (res.ok) {
@@ -50,6 +41,16 @@ export default function Header() {
       console.error("Lỗi lấy thông báo:", error);
     }
   };
+  
+  // Lấy thông báo từ Backend khi đăng nhập
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchNotifications();
+      // Tùy chọn: Đặt interval để polling thông báo tự động mỗi 30s
+      const interval = setInterval(fetchNotifications, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isLoggedIn]);
 
   // LOGIC TÌM KIẾM
   const handleSearch = () => {
@@ -82,7 +83,7 @@ export default function Header() {
     if (!notif.is_read) {
       setNotifications(notifications.map((n) => (n._id === notif._id ? { ...n, is_read: true } : n)));
       try {
-        await fetch(`http://localhost:5000/api/notifications/${notif._id}/read`, {
+        await fetch(`${getApiUrl(API_ENDPOINTS.NOTIFICATIONS_READ(notif._id))}`, {
           method: "PUT",
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         });
@@ -97,7 +98,7 @@ export default function Header() {
   const markAllAsRead = async () => {
     setNotifications(notifications.map(n => ({ ...n, is_read: true })));
     try {
-      await fetch(`http://localhost:5000/api/notifications/read-all`, {
+      await fetch(getApiUrl(API_ENDPOINTS.NOTIFICATIONS_READ_ALL), {
         method: "PUT",
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });

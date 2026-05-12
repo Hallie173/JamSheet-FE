@@ -25,6 +25,7 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
+import { getApiUrl, API_ENDPOINTS } from "@/lib/constants";
 
 // Hàm tiện ích để hiển thị thời gian tương đối (VD: "2 giờ trước")
 const timeAgo = (dateString) => {
@@ -80,7 +81,7 @@ export default function Home() {
     const fetchRecentDrafts = async () => {
       setIsLoadingDrafts(true);
       try {
-        const res = await fetch("http://localhost:5000/api/jams/recent-drafts", {
+        const res = await fetch(getApiUrl(API_ENDPOINTS.JAMS_RECENT_DRAFTS), {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         });
         if (res.ok) {
@@ -97,7 +98,7 @@ export default function Home() {
     const fetchTrendingJams = async () => {
       setIsLoadingTrending(true);
       try {
-        const res = await fetch("http://localhost:5000/api/jams/trending");
+        const res = await fetch(getApiUrl(API_ENDPOINTS.JAMS_TRENDING));
         if (res.ok) {
           const data = await res.json();
           setTrendingJams(data);
@@ -137,7 +138,7 @@ export default function Home() {
   // Giữ lại dữ liệu mẫu cho mục Thiếu nhạc công (hoặc bạn có thể viết API tương tự như Trending để lấy những phòng chưa kín)
   const missingJams = [
     {
-      id: 1, title: "Đêm Nay Ai Đưa Em Về", creator: "Minh Tuấn", missing: ["Drums", "Vocal"], filled: 2, total: 4,
+      id: 1, title: "Bella Ciao", creator: "HS", missing: ["Piano", "Trumpet"], filled: 2, total: 4,
     },
   ];
 

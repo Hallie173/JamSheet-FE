@@ -10,11 +10,13 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { useTheme } from "@/hooks/useTheme";
 
 export default function Sidebar() {
   const userString = localStorage.getItem("user");
   const user = userString ? JSON.parse(userString) : null;
   const isLoggedIn = !!user;
+  const { theme, toggleTheme } = useTheme();
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -101,13 +103,21 @@ export default function Sidebar() {
 
               <DropdownMenuItem
                 className="cursor-pointer flex justify-between items-center"
-                onSelect={(e) => e.preventDefault()}
+                onSelect={(e) => {
+                  e.preventDefault(); 
+                  toggleTheme(); 
+                }}
               >
                 <div className="flex items-center">
                   <Moon className="mr-2 h-4 w-4" />
                   <span>Chế độ tối</span>
                 </div>
-                <Switch id="dark-mode" defaultChecked={true} />
+                {/* Switch cực kỳ gọn nhẹ, sẽ tự động áp dụng CSS đã cập nhật trong file switch.jsx */}
+                <Switch
+                  id="theme-mode"
+                  checked={theme === "dark"}
+                  className="pointer-events-none"
+                />
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />

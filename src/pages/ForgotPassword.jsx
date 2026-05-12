@@ -1,17 +1,15 @@
 import React from "react";
-import whiteLogo from "@/assets/white-logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
-import { ArrowLeft } from "lucide-react";
+import AuthHeader from "@/components/ui/auth-header";
+import AlertMessage from "@/components/ui/alert-message";
+import { getApiUrl, API_ENDPOINTS } from "@/lib/constants";
 
 export default function ForgotPassword() {
   const [email, setEmail] = React.useState("");
@@ -31,7 +29,7 @@ export default function ForgotPassword() {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/auth/forgot-password",
+        getApiUrl(API_ENDPOINTS.FORGOT_PASSWORD),
         {
           method: "POST",
           headers: {
@@ -64,34 +62,13 @@ export default function ForgotPassword() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-3 flex flex-col items-center text-center">
-          <a href="/">
-          <img
-            src={whiteLogo}
-            alt="JamSheet Logo"
-            className="w-12 h-12 rounded-full object-cover mb-2"
-          />
-          </a>
-          <CardTitle className="text-2xl font-bold">
-            Khôi phục mật khẩu
-          </CardTitle>
-          <CardDescription>
-            Nhập email của bạn để nhận liên kết đặt lại mật khẩu
-          </CardDescription>
-        </CardHeader>
+        <AuthHeader
+          title="Khôi phục mật khẩu"
+          description="Nhập email của bạn để nhận liên kết đặt lại mật khẩu"
+        />
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
-            {message.text && (
-              <div
-                className={`p-3 text-sm font-medium rounded-md border ${
-                  message.type === "success"
-                    ? "text-emerald-500 bg-emerald-500/10 border-emerald-500/20"
-                    : "text-destructive bg-destructive/10 border-destructive/20"
-                }`}
-              >
-                {message.text}
-              </div>
-            )}
+            <AlertMessage message={message.text} type={message.type} />
             <div className="space-y-2">
               <Label htmlFor="email">Email đã đăng ký</Label>
               <Input

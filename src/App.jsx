@@ -8,7 +8,6 @@ import {
 
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
@@ -20,7 +19,6 @@ import MyRecords from "./pages/MyRecords";
 import JamRoom from "./pages/JamRoom";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
-//import JamRoom from './pages/JamRoom';
 
 const MainLayout = () => {
   return (

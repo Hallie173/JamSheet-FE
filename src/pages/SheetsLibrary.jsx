@@ -78,14 +78,15 @@ export default function SheetsLibrary() {
     id: sheet._id,
     // LẤY TRANG ĐẦU TIÊN LÀM ẢNH BÌA
     thumbnail:
-      sheet.file_urls && sheet.file_urls.length > 0 ? sheet.file_urls[0] : (sheet.file_url || ""),
+      sheet.file_urls && sheet.file_urls.length > 0
+        ? sheet.file_urls[0]
+        : sheet.file_url || "",
     sheetUrls: sheet.file_urls || [],
     liked_by: sheet.liked_by || [],
   });
 
   const fetchExploreSheets = async () => {
     try {
-      // BẮT THAM SỐ TỪ URL (Lỗ hổng tìm kiếm đã được vá)
       const params = new URLSearchParams(window.location.search);
       const queryString = params.toString();
 
@@ -98,7 +99,6 @@ export default function SheetsLibrary() {
       if (res.ok) {
         setExploreSheets(data.map(formatSheetData));
 
-        // Tự động cuộn xuống phần khám phá nếu người dùng đang tìm kiếm
         if (queryString) {
           setTimeout(() => {
             if (exploreRef.current) {
@@ -128,17 +128,14 @@ export default function SheetsLibrary() {
     }
   };
 
-  // ================= API CHỨC NĂNG LIKE ĐỒNG BỘ =================
   const handleToggleLike = async (e, id) => {
-    e.stopPropagation(); // Ngăn không cho click nhầm mở ảnh Full màn hình
+    e.stopPropagation();
     if (!isLoggedIn) return alert("Vui lòng đăng nhập để thích nhạc phổ!");
 
-    // 1. CẬP NHẬT GIAO DIỆN NGAY LẬP TỨC (Optimistic UI)
     const updateLikeState = (sheets) =>
       sheets.map((sheet) => {
         if (sheet.id === id) {
           const hasLiked = sheet.liked_by.includes(currentUserId);
-          // Nếu đã like thì bỏ ID ra, chưa like thì nhét ID vào
           const newLikedBy = hasLiked
             ? sheet.liked_by.filter((uid) => uid !== currentUserId)
             : [...sheet.liked_by, currentUserId];
@@ -151,7 +148,6 @@ export default function SheetsLibrary() {
     setMySheets((prev) => updateLikeState(prev));
     setExploreSheets((prev) => updateLikeState(prev));
 
-    // 2. GỌI API CHẠY NGẦM PHÍA SAU
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(`http://localhost:5000/api/sheets/${id}/like`, {
@@ -160,7 +156,6 @@ export default function SheetsLibrary() {
       });
       if (!res.ok) throw new Error("Lỗi Server");
     } catch (error) {
-      // Nếu API lỗi, có thể Rollback lại dữ liệu cũ ở đây (hiện tại bỏ qua để code gọn)
       console.error("Lỗi cập nhật Like:", error);
     }
   };
@@ -290,7 +285,6 @@ export default function SheetsLibrary() {
       const data = await res.json();
 
       if (data.isDuplicate) {
-        // 2. Nếu đã tồn tại, hiển thị Confirm
         const confirmGo = window.confirm(
           `Bạn đã từng mở một phòng Jam với nhạc phổ "${sheet.title}"!\n\nNhấn OK để vào phòng Jam ngay!`,
         );
@@ -367,7 +361,6 @@ export default function SheetsLibrary() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
-      // Chuyển hướng đến phòng Jam vừa tạo
       window.location.href = `/jam-room?id=${data.room._id}`;
     } catch (error) {
       alert("Lỗi tạo phòng Jam: " + error.message);
@@ -379,12 +372,10 @@ export default function SheetsLibrary() {
     const isLiked = sheet.liked_by.includes(currentUserId);
     const likeCount = sheet.liked_by.length;
 
-    // ĐÃ SỬA: Lấy fileUrl an toàn từ mảng sheetUrls hoặc file_url cũ
     const fileUrl = sheet.sheetUrls?.[0] || sheet.file_url || "";
     const isPdf = fileUrl.toLowerCase().endsWith(".pdf");
     const isCloudinary = fileUrl.includes("res.cloudinary.com");
 
-    // Nếu là PDF trên Cloudinary -> Đổi đuôi sang jpg để lấy ảnh bìa. Nếu không phải, giữ nguyên.
     const finalImageUrl =
       isPdf && isCloudinary
         ? fileUrl.substring(0, fileUrl.lastIndexOf(".")) + ".jpg"
@@ -393,13 +384,14 @@ export default function SheetsLibrary() {
     return (
       <Card
         key={sheet.id}
-        className="relative hover:border-primary/50 transition-colors cursor-pointer flex flex-col overflow-hidden group shadow-sm bg-card h-[380px]"
+        className="p-0 relative hover:border-primary/50 transition-colors cursor-pointer flex flex-col overflow-hidden group shadow-sm bg-card h-full"
         onClick={() => {
           if (editingSheetId !== sheet.id) {
             setSelectedSheet(sheet);
           }
         }}
       >
+        {/* ===================== CÁC NÚT HOVER ===================== */}
         {isMySheet && editingSheetId !== sheet.id && (
           <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
             <Button
@@ -454,7 +446,8 @@ export default function SheetsLibrary() {
           </div>
         )}
 
-        {isMySheet && editingSheetId === sheet.id ? (
+        {/* ===================== FORM CHỈNH SỬA (OVERLAY LÊN TRÊN) ===================== */}
+        {isMySheet && editingSheetId === sheet.id && (
           <div
             className="p-4 flex flex-col gap-3 h-full bg-background absolute inset-0 z-20 overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
@@ -489,7 +482,7 @@ export default function SheetsLibrary() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Nhịp (Time Signature) *</Label>
+                <Label className="text-xs">Nhịp *</Label>
                 <Input
                   size="sm"
                   className="h-8 text-xs"
@@ -566,83 +559,86 @@ export default function SheetsLibrary() {
               </Button>
             </div>
           </div>
-        ) : (
-          <>
-            <div className="flex-1 bg-muted relative border-b border-border/50 overflow-hidden flex items-center justify-center">
-              {isPdf && !isCloudinary ? (
-                <FileText className="w-16 h-16 text-muted-foreground/50 group-hover:scale-110 transition-transform" />
-              ) : (
-                <img
-                  src={finalImageUrl || "https://placehold.co/400x600?text=No+Image"}
-                  onError={(e) => {
-                    e.target.src =
-                      "https://placehold.co/400x600?text=L%E1%BB%97i+%E1%BA%A3nh";
-                  }}
-                  className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
-                  alt="thumbnail"
-                />
-              )}
-
-              {isPdf && (
-                <div className="absolute top-2 right-2 bg-black/60 backdrop-blur text-white text-[10px] px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1 border border-white/10">
-                  <FileText className="w-3 h-3" /> PDF
-                </div>
-              )}
-
-              <div className="absolute bottom-2 left-2 flex flex-wrap gap-1 pr-2">
-                {sheet.instrument_tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-[10px] font-medium bg-black/70 text-white px-2 py-0.5 rounded-sm backdrop-blur-md border border-white/10"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <CardHeader className="p-3 pb-0 shrink-0">
-              <h3
-                className="text-base font-bold leading-tight truncate"
-                title={sheet.title}
-              >
-                {sheet.title}
-              </h3>
-              <div className="flex justify-between items-center mt-1">
-                <p className="text-xs text-muted-foreground truncate flex-1">
-                  {sheet.composer}
-                </p>
-                <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
-                  {sheet.tempo} BPM
-                </span>
-              </div>
-            </CardHeader>
-            <CardFooter className="p-3 pt-2 shrink-0 flex items-center justify-between text-muted-foreground border-t border-border/50 mt-2">
-              {/* NÚT LIKE ĐÃ ĐƯỢC GẮN LOGIC */}
-              <div
-                className="flex items-center gap-1.5 text-xs cursor-pointer group/like p-1 -ml-1 rounded-md hover:bg-destructive/10 transition-colors"
-                onClick={(e) => handleToggleLike(e, sheet.id)}
-              >
-                <Heart
-                  className={`w-4 h-4 transition-colors ${isLiked ? "fill-destructive text-destructive" : "group-hover/like:text-destructive"}`}
-                />
-                <span className={isLiked ? "text-destructive font-medium" : ""}>
-                  {likeCount}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1.5 text-xs">
-                <Users className="w-3.5 h-3.5" />{" "}
-                <span>{sheet.contributors_count}</span>
-              </div>
-            </CardFooter>
-          </>
         )}
+
+        {/* ===================== NỘI DUNG CARD (LUÔN RENDER ĐỂ GIỮ KHUNG KHÔNG BỊ XẸP) ===================== */}
+        <div className="aspect-[4/5] w-full bg-white dark:bg-white relative border-b border-border/50 overflow-hidden flex items-center justify-center">
+          {isPdf && !isCloudinary ? (
+            <FileText className="w-16 h-16 text-muted-foreground/50 group-hover:scale-110 transition-transform" />
+          ) : (
+            <img
+              src={
+                finalImageUrl ||
+                "https://placehold.co/400x600?text=No+Image"
+              }
+              onError={(e) => {
+                e.target.src =
+                  "https://placehold.co/400x600?text=L%E1%BB%97i+%E1%BA%A3nh";
+              }}
+              className="absolute inset-0 block w-full h-full object-cover object-top opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+              alt="thumbnail"
+            />
+          )}
+
+          {isPdf && (
+            <div className="absolute top-2 right-2 bg-black/60 backdrop-blur text-white text-[10px] px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1 border border-white/10">
+              <FileText className="w-3 h-3" /> PDF
+            </div>
+          )}
+
+          <div className="absolute bottom-2 left-2 flex flex-wrap gap-1 pr-2">
+            {sheet.instrument_tags.map((tag) => (
+              <span
+                key={tag}
+                className="text-[10px] font-medium bg-black/70 text-white px-2 py-0.5 rounded-sm backdrop-blur-md border border-white/10"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+        
+        <CardHeader className="p-3 pb-0 shrink-0">
+          <h3
+            className="text-base font-bold leading-tight truncate"
+            title={sheet.title}
+          >
+            {sheet.title}
+          </h3>
+          <div className="flex justify-between items-center mt-1">
+            <p className="text-xs text-muted-foreground truncate flex-1">
+              {sheet.composer}
+            </p>
+            <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+              {sheet.tempo} BPM
+            </span>
+          </div>
+        </CardHeader>
+
+        <CardFooter className="p-3 pt-2 shrink-0 flex items-center justify-between text-muted-foreground border-t border-border/50 mt-auto">
+          <div
+            className="flex items-center gap-1.5 text-xs cursor-pointer group/like p-1 -ml-1 rounded-md hover:bg-destructive/10 transition-colors"
+            onClick={(e) => handleToggleLike(e, sheet.id)}
+          >
+            <Heart
+              className={`w-4 h-4 transition-colors ${isLiked ? "fill-destructive text-destructive" : "group-hover/like:text-destructive"}`}
+            />
+            <span className={isLiked ? "text-destructive font-medium" : ""}>
+              {likeCount}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-xs">
+            <Users className="w-3.5 h-3.5" />{" "}
+            <span>{sheet.contributors_count}</span>
+          </div>
+        </CardFooter>
       </Card>
     );
   };
 
   return (
-    <div className="flex flex-col h-full space-y-8 relative">
+    <div className="flex flex-col h-full space-y-8 relative pb-32 mb-8">
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
@@ -713,7 +709,7 @@ export default function SheetsLibrary() {
           <Search className="w-5 h-5 text-primary" />
           <h2 className="text-2xl font-bold">Khám phá Cộng đồng</h2>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {exploreSheets.map((sheet) => renderSheetCard(sheet, false))}
         </div>
       </div>
@@ -849,17 +845,18 @@ export default function SheetsLibrary() {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              {!selectedSheet.sheetUrls?.[0]?.toLowerCase().endsWith(".pdf") && !selectedSheet.file_url?.toLowerCase().endsWith(".pdf") && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-white hover:bg-white/20"
-                  title="Tải xuống"
-                  onClick={(e) => handleDownload(e, selectedSheet)}
-                >
-                  <Download className="w-6 h-6" />
-                </Button>
-              )}
+              {!selectedSheet.sheetUrls?.[0]?.toLowerCase().endsWith(".pdf") &&
+                !selectedSheet.file_url?.toLowerCase().endsWith(".pdf") && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-white hover:bg-white/20"
+                    title="Tải xuống"
+                    onClick={(e) => handleDownload(e, selectedSheet)}
+                  >
+                    <Download className="w-6 h-6" />
+                  </Button>
+                )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -987,6 +984,9 @@ export default function SheetsLibrary() {
           </Card>
         </div>
       )}
+
+      {/* Spacer dự phòng để không dính lề */}
+      <div className="w-full h-20 shrink-0"></div>
     </div>
   );
 }

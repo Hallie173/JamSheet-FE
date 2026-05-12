@@ -1,18 +1,17 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
-import whiteLogo from "@/assets/white-logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
+import AuthHeader from "@/components/ui/auth-header";
+import AlertMessage from "@/components/ui/alert-message";
+import { getApiUrl, API_ENDPOINTS } from "@/lib/constants";
 
 export default function LoginPage() {
   const [email, setEmail] = React.useState("");
@@ -35,7 +34,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/login", {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.LOGIN), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -64,29 +63,13 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-3 flex flex-col items-center text-center">
-          
-          <a href="/">
-            <img
-              src={whiteLogo}
-              alt="JamSheet Logo"
-              className="w-12 h-12 rounded-full object-cover mb-2"
-            />
-          </a>
-          <CardTitle className="text-2xl font-bold">
-            Đăng nhập JamSheet
-          </CardTitle>
-          <CardDescription>
-            Kết nối và hòa âm cùng cộng đồng âm nhạc
-          </CardDescription>
-        </CardHeader>
+        <AuthHeader
+          title="Đăng nhập JamSheet"
+          description="Kết nối và hòa âm cùng cộng đồng âm nhạc"
+        />
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
-            {error && (
-              <div className="p-3 text-sm font-medium text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
-                {error}
-              </div>
-            )}
+            <AlertMessage message={error} type="error" />
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -109,33 +92,33 @@ export default function LoginPage() {
                 </a>
               </div>
               <div className="relative w-full">
-              <Input
-                className="pr-10"
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Nhập mật khẩu"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none flex items-center justify-center"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? (
-                  <EyeOff className="w-4 h-4" />
-                ) : (
-                  <Eye className="w-4 h-4" />
-                )}
-              </button>{" "}
+                <Input
+                  className="pr-10"
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Nhập mật khẩu"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
               </div>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
-            </Button>{" "}
+            </Button>
             <div className="text-sm text-center text-muted-foreground">
               Chưa có tài khoản?{" "}
               <a
