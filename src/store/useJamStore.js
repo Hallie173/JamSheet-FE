@@ -23,7 +23,12 @@ export const useJamStore = create((set, get) => ({
         throw new Error(data.message || "Không thể tải phòng Jam");
 
       const newState = {
-        activeRoom: data,
+        // Trải phẳng data gốc, đồng thời tự động bóc tách mảng nhiều trang
+        // từ sheet_music_id (nếu có) và gán thẳng vào biến sheetUrls
+        activeRoom: {
+          ...data,
+          sheetUrls: data.sheetUrls || data.sheet_music_id?.file_urls || data.file_urls || []
+        },
         currentTracks: data.tracks,
         isPlaying: false,
         isLoadingRoom: false,
