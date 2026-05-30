@@ -90,9 +90,10 @@ export default function SheetsLibrary() {
       const params = new URLSearchParams(window.location.search);
       const queryString = params.toString();
 
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
       const endpoint = queryString
-        ? `http://localhost:5000/api/sheets/search?${queryString}`
-        : `http://localhost:5000/api/sheets/explore`;
+        ? `${baseUrl}/api/sheets/search?${queryString}`
+        : `${baseUrl}/api/sheets/explore`;
 
       const res = await fetch(endpoint);
       const data = await res.json();
@@ -118,7 +119,7 @@ export default function SheetsLibrary() {
   const fetchMySheets = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/sheets/my-sheets", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets/my-sheets`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -150,7 +151,7 @@ export default function SheetsLibrary() {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:5000/api/sheets/${id}/like`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets/${id}/like`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -178,7 +179,7 @@ export default function SheetsLibrary() {
       formData.append("time_signature", uploadData.time_signature);
       formData.append("file", uploadData.file);
 
-      const res = await fetch("http://localhost:5000/api/sheets", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -226,7 +227,7 @@ export default function SheetsLibrary() {
         .map((t) => t.trim())
         .filter((t) => t !== "");
 
-      const res = await fetch(`http://localhost:5000/api/sheets/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -252,7 +253,7 @@ export default function SheetsLibrary() {
     if (window.confirm("Bạn có chắc chắn muốn xóa nhạc phổ này?")) {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(`http://localhost:5000/api/sheets/${id}`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets/${id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -277,7 +278,7 @@ export default function SheetsLibrary() {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `http://localhost:5000/api/jams/check-duplicate?title=${encodeURIComponent(sheet.title)}`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/jams/check-duplicate?title=${encodeURIComponent(sheet.title)}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -317,7 +318,7 @@ export default function SheetsLibrary() {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `http://localhost:5000/api/jams/find-by-sheet/${sheetId}`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/jams/find-by-sheet/${sheetId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -344,7 +345,7 @@ export default function SheetsLibrary() {
         .map((i) => i.trim())
         .filter((i) => i);
 
-      const res = await fetch("http://localhost:5000/api/jams", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/jams`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

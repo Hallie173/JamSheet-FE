@@ -12,7 +12,7 @@ export default function JamLobby() {
     const fetchLobbyJams = async () => {
       setIsLoadingLobby(true);
       try {
-        const response = await fetch("http://localhost:5000/api/jams/lobby", {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/jams/lobby`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
 

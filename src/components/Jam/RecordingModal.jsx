@@ -582,7 +582,7 @@ export default function RecordingModal({
       const formData = new FormData();
       formData.append("audio", currentAudioBlob, "raw_record.webm");
 
-      const response = await fetch("http://localhost:8000/api/clean-audio", {
+      const response = await fetch(`${import.meta.env.VITE_AI_URL || "http://localhost:8000"}/api/clean-audio`, {
         method: "POST",
         body: formData,
       });
@@ -637,9 +637,10 @@ export default function RecordingModal({
 
       const params = new URLSearchParams(window.location.search);
       const draftId = params.get("draftId");
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
       const url = draftId
-        ? `http://localhost:5000/api/jams/tracks/${draftId}`
-        : `http://localhost:5000/api/jams/${activeRoom.id}/tracks`;
+        ? `${baseUrl}/api/jams/tracks/${draftId}`
+        : `${baseUrl}/api/jams/${activeRoom.id}/tracks`;
 
       const response = await fetch(url, {
         method: draftId ? "PUT" : "POST",

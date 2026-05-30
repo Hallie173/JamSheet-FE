@@ -12,7 +12,7 @@ export const useJamStore = create((set, get) => ({
   fetchJamRoomData: async (roomId) => {
     set({ isLoadingRoom: true, errorMsg: null });
     try {
-      const response = await fetch(`http://localhost:5000/api/jams/${roomId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/jams/${roomId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -79,7 +79,7 @@ export const useJamStore = create((set, get) => ({
 
   toggleLikeRecord: async (instrument, recordId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/jams/tracks/${recordId}/like`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/jams/tracks/${recordId}/like`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
@@ -173,7 +173,7 @@ export const useJamStore = create((set, get) => ({
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/jams/${projectId}/mix-config`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/jams/${projectId}/mix-config`,
         {
           method: "PUT",
           headers: {
