@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo, use } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   Mic2,
   Square,
@@ -220,19 +220,16 @@ const CustomPreviewPlayer = ({
 
   return (
     <div className="w-full flex flex-col gap-3">
-      {/* VÙNG CHỨA CÓ THANH CUỘN (SCROLL WRAPPER) */}
       <div
         ref={scrollContainerRef}
         className="w-full overflow-x-auto pb-4 pt-1 custom-scrollbar border border-border/50 rounded-xl bg-card shadow-inner"
       >
-        {/* KHUNG CỐ ĐỊNH CHIỀU RỘNG (BỊ KÉO DÃN BỞI PIXELS_PER_BEAT) */}
         <div
           className="flex flex-col gap-5 relative px-3"
           style={{
             width: `max(100%, ${totalBeatsToDisplay * PIXELS_PER_BEAT}px)`,
           }}
         >
-          {/* DẢI 1: SÓNG ÂM METRONOME (CỐ ĐỊNH) */}
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs text-muted-foreground font-mono uppercase tracking-wider pl-1">
               Metronome (Chuẩn nhịp)
@@ -258,7 +255,6 @@ const CustomPreviewPlayer = ({
             </div>
           </div>
 
-          {/* DẢI 2: SÓNG ÂM BẢN THU (KÉO TRƯỢT) */}
           <div className="flex flex-col gap-1.5 relative">
             <Label className="text-xs text-muted-foreground font-mono uppercase tracking-wider pl-1">
               Bản thu của bạn
@@ -302,7 +298,6 @@ const CustomPreviewPlayer = ({
         </div>
       </div>
 
-      {/* THANH ĐIỀU KHIỂN & SLIDER OFFSET */}
       <div className="flex items-center gap-4 bg-background p-4 rounded-lg border border-border shadow-inner mt-2">
         <Button
           size="icon"
@@ -354,6 +349,9 @@ export default function RecordingModal({
   const [countdownBeat, setCountDownBeat] = useState(0);
   const [previewAudioUrl, setPreviewAudioUrl] = useState(null);
   const [useAiClean, setUseAiClean] = useState(false);
+  const [isAiProcessing, setIsAiProcessing] = useState(false); // Trạng thái hiển thị Loading
+  const [rawAudioBlob, setRawAudioBlob] = useState(null); // Giữ file âm thanh gốc
+  const [cleanAudioBlob, setCleanAudioBlob] = useState(null);
   const [syncOffset, setSyncOffset] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -367,43 +365,37 @@ export default function RecordingModal({
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
+  // Auto-scroll refs
   const sheetContainerRef = useRef(null);
   const scrollAnimationRef = useRef(null);
   const lastScrollTime = useRef(0);
-  
-  // KHAI BÁO BIẾN LƯU VỊ TRÍ CUỘN SỐ THỰC
   const exactScrollTopRef = useRef(0);
 
-  // HIỆU ỨNG TỰ ĐỘNG CUỘN (AUTO-SCROLL)
+  // Auto-scroll effect during recording
   useEffect(() => {
     if (recordingStatus === "recording") {
       lastScrollTime.current = performance.now();
-      
-      // Đồng bộ biến số thực với vị trí cuộn hiện tại của khung chứa
       exactScrollTopRef.current = sheetContainerRef.current?.scrollTop || 0;
-      
+
       const scroll = (time) => {
         const dt = (time - lastScrollTime.current) / 1000;
         lastScrollTime.current = time;
-        
+
         if (sheetContainerRef.current) {
           const currentScroll = sheetContainerRef.current.scrollTop;
 
-          // 1. CHỐNG GIẬT KHI CUỘN TAY: Nếu người dùng vừa tự cuộn chuột (lệch > 2px), ta đồng bộ lại biến
+          // Sync with manual scroll
           if (Math.abs(currentScroll - exactScrollTopRef.current) > 2) {
             exactScrollTopRef.current = currentScroll;
           }
 
-          // 2. TÍCH LŨY SỐ THẬP PHÂN (Để giữ độ mượt ở tốc độ cực thấp)
+          // Accumulate decimal for smooth scroll at low speeds
           exactScrollTopRef.current += 40 * autoScrollSpeed * dt;
-
-          // 3. FIX LỖI ĐỨNG YÊN: Gán trực tiếp giá trị số thực. Trình duyệt sẽ tự làm tròn hiển thị 
-          // nhưng biến exactScrollTopRef vẫn lưu số thập phân để tiếp tục cộng dồn ở khung hình sau.
           sheetContainerRef.current.scrollTop = exactScrollTopRef.current;
         }
         scrollAnimationRef.current = requestAnimationFrame(scroll);
       };
-      
+
       scrollAnimationRef.current = requestAnimationFrame(scroll);
     } else {
       if (scrollAnimationRef.current) {
@@ -411,25 +403,14 @@ export default function RecordingModal({
         scrollAnimationRef.current = null;
       }
     }
-    
+
     return () => {
-      if (scrollAnimationRef.current) cancelAnimationFrame(scrollAnimationRef.current);
+      if (scrollAnimationRef.current)
+        cancelAnimationFrame(scrollAnimationRef.current);
     };
   }, [recordingStatus, autoScrollSpeed]);
 
   // THÊM LOGIC ĐỔI ĐUÔI PDF SANG JPG CHO CLOUDINARY
-  const sheetImageUrl = useMemo(() => {
-    const url = activeRoom?.sheetUrl;
-    if (!url) return "";
-    if (
-      url.toLowerCase().endsWith(".pdf") &&
-      url.includes("res.cloudinary.com")
-    ) {
-      return url.substring(0, url.lastIndexOf(".")) + ".jpg";
-    }
-    return url;
-  }, [activeRoom?.sheetUrl]);
-
   const timeSignatureStr = activeRoom?.timeSignature || "4/4";
   const beatsPerMeasure = parseInt(timeSignatureStr.split("/")[0]) || 4;
 
@@ -460,6 +441,13 @@ export default function RecordingModal({
         const audioBlob = new Blob(audioChunksRef.current, {
           type: "audio/webm",
         });
+
+        //Lưu file gốc và reset các state của AI
+        setRawAudioBlob(audioBlob);
+        setCleanAudioBlob(null);
+        setUseAiClean(false);
+
+        //Load file gốc
         const audioUrl = URL.createObjectURL(audioBlob);
         setPreviewAudioUrl(audioUrl);
         setRecordingStatus("preview");
@@ -548,6 +536,54 @@ export default function RecordingModal({
     }
   };
 
+  const handleToggleAI = async () => {
+    if (useAiClean) {
+      setUseAiClean(false);
+      if (rawAudioBlob) {
+        setPreviewAudioUrl(URL.createObjectURL(rawAudioBlob));
+      }
+      return;
+    }
+
+    if (cleanAudioBlob) {
+      setUseAiClean(true);
+      setPreviewAudioUrl(URL.createObjectURL(cleanAudioBlob));
+      return;
+    }
+
+    if (!rawAudioBlob) {
+      return;
+    }
+
+    setIsAiProcessing(true);
+    try {
+      const formData = new FormData();
+      formData.append("audio", rawAudioBlob, "raw_record.webm");
+
+      const response = await fetch("http://localhost:8000/api/clean-audio", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok)
+        throw new Error("Lỗi khi xử lý AI: " + response.statusText);
+
+      const processedBlob = await response.blob();
+      setCleanAudioBlob(processedBlob);
+      setPreviewAudioUrl(URL.createObjectURL(processedBlob));
+      setUseAiClean(true);
+    } catch (error) {
+      console.error("Lỗi khi xử lý AI:", error);
+      alert(
+        "Không thể xử lý AI! Vui lòng thử lại hoặc kiểm tra server AI." +
+          error.message,
+      );
+      setUseAiClean(false);
+    } finally {
+      setIsAiProcessing(false);
+    }
+  };
+
   const cancelPreview = () => {
     setPreviewAudioUrl(null);
     setRecordingStatus("idle");
@@ -555,30 +591,24 @@ export default function RecordingModal({
     audioChunksRef.current = [];
   };
 
-  // ĐÃ SỬA: Xóa bỏ tham số mặc định để tránh nhận nhầm Event Object từ onClick
   const executeSaveTrack = async () => {
     setIsUploading(true);
     setIsNameModalOpen(false);
     try {
       const formData = new FormData();
-      if (audioChunksRef.current.length > 0) {
-        const audioBlob = new Blob(audioChunksRef.current, {
-          type: "audio/webm",
-        });
-        const file = new File([audioBlob], "record.webm", {
-          type: "audio/webm",
+      let blobToSave = useAiClean ? cleanAudioBlob : rawAudioBlob;
+
+      if (blobToSave) {
+        const fileExtension = useAiClean ? "wav" : "webm";
+        const file = new File([blobToSave], `record.${fileExtension}`, {
+          type: blobToSave.type || (useAiClean ? "audio/wav" : "audio/webm"),
         });
         formData.append("audio", file);
       }
-      formData.append("instrument", recordingTrack.instrument);
 
-      // Lấy trực tiếp từ biến state
+      formData.append("instrument", recordingTrack.instrument);
       formData.append("status", saveTargetStatus);
-      const finalName =
-        customTrackName.trim() ||
-        (saveTargetStatus === "published"
-          ? `Take ${recordingTrack.instrument}`
-          : "Bản nháp");
+      const finalName = customTrackName.trim() || (saveTargetStatus === "published" ? `Take ${recordingTrack.instrument}` : "Bản nháp");
       formData.append("name", finalName);
       formData.append("sync_offset_ms", syncOffset);
       formData.append("use_ai_clean", useAiClean);
@@ -598,7 +628,6 @@ export default function RecordingModal({
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Lỗi không xác định");
 
-      //Cập nhật zustand để vẽ sóng âm
       if (saveTargetStatus === "published") {
         addRecordToTrack(recordingTrack.instrument, {
           id: data.track._id,
@@ -629,7 +658,7 @@ export default function RecordingModal({
       status === "published" ? `Take ${recordingTrack.instrument}` : "Bản nháp",
     );
     setIsNameModalOpen(true);
-  }; 
+  };
 
   const handleClose = () => {
     stopRecordingFlow();
@@ -639,10 +668,7 @@ export default function RecordingModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md flex animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
-      {/* NỬA TRÁI: NHẠC PHỔ */}
       <div className="flex-1 border-r border-border p-4 flex flex-col h-full relative bg-muted/30">
-        
-        {/* THANH ĐIỀU KHIỂN TỐC ĐỘ CUỘN */}
         <div className="flex items-center justify-between mb-2 shrink-0">
           <h3 className="font-bold text-lg flex items-center gap-2">
             <FileText className="w-5 h-5 text-primary" /> Nhạc phổ
@@ -657,7 +683,9 @@ export default function RecordingModal({
               onValueChange={(val) => setAutoScrollSpeed(val[0])}
               className="w-24 cursor-pointer"
             />
-            <span className="w-8 font-mono font-medium">{autoScrollSpeed}x</span>
+            <span className="w-8 font-mono font-medium">
+              {autoScrollSpeed}x
+            </span>
           </div>
         </div>
 
@@ -685,9 +713,9 @@ export default function RecordingModal({
                   className="w-full h-full rounded-md"
                 />
               ) : (
-                <img 
-                  src={activeRoom.sheetUrl} 
-                  alt="Sheet Music" 
+                <img
+                  src={activeRoom.sheetUrl}
+                  alt="Sheet Music"
                   className="w-full h-auto object-contain pointer-events-none"
                 />
               )
@@ -701,7 +729,6 @@ export default function RecordingModal({
         </div>
       </div>
 
-      {/* NỬA PHẢI: PHÒNG THU & ĐIỀU CHỈNH */}
       <div className="w-1/2 lg:w-2/5 p-6 flex flex-col h-full bg-card shadow-2xl relative overflow-y-auto custom-scrollbar">
         <Button
           variant="ghost"
@@ -722,18 +749,15 @@ export default function RecordingModal({
           </p>
         </div>
 
-        {/* KHU VỰC CHÍNH (THU ÂM HOẶC PREVIEW) */}
         <div
           className={`border rounded-xl p-6 flex flex-col items-center mb-6 flex-1 transition-colors duration-500 ${recordingStatus === "recording" ? "bg-red-500/10 border-red-500/50" : "bg-muted/40 border-border"}`}
         >
           {recordingStatus === "preview" ? (
-            // GIAO DIỆN PREVIEW & CĂN CHỈNH
             <div className="w-full flex flex-col items-center gap-6 flex-1">
               <h3 className="text-xl font-bold text-primary flex items-center gap-2 shrink-0">
                 <Check className="w-6 h-6" /> Thu âm hoàn tất!
               </h3>
 
-              {/* PHÁT SONG SONG 2 DẢI SÓNG */}
               <div className="w-full flex-1 flex items-center justify-center">
                 <CustomPreviewPlayer
                   previewAudioUrl={previewAudioUrl}
@@ -744,29 +768,45 @@ export default function RecordingModal({
                 />
               </div>
 
-              {/* AI */}
-              <div
-                className="flex items-center gap-2 bg-background p-3 rounded-lg border border-border w-full max-w-sm shadow-sm cursor-pointer hover:border-primary/50 transition-colors shrink-0"
-                onClick={() => setUseAiClean(!useAiClean)}
-              >
+              {rawAudioBlob && (
                 <div
-                  className={`w-5 h-5 rounded flex items-center justify-center border ${useAiClean ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground"}`}
+                  className={`flex items-center gap-3 bg-background p-3 rounded-lg border w-full max-w-sm shadow-sm transition-all shrink-0 ${
+                    isAiProcessing
+                      ? "border-primary/50 opacity-70 cursor-wait bg-primary/5"
+                      : "border-border cursor-pointer hover:border-primary/50"
+                  }`}
+                  onClick={() => !isAiProcessing && handleToggleAI()}
                 >
-                  {useAiClean && <Check className="w-3.5 h-3.5" />}
+                  <div
+                    className={`w-5 h-5 rounded flex items-center justify-center border ${
+                      useAiClean
+                        ? "bg-primary border-primary text-primary-foreground"
+                        : "border-muted-foreground"
+                    }`}
+                  >
+                    {isAiProcessing ? (
+                      <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
+                    ) : (
+                      useAiClean && <Check className="w-3.5 h-3.5" />
+                    )}
+                  </div>
+                  <div className="flex flex-col flex-1">
+                    <span className="text-sm font-bold flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-emerald-500" />
+                      {isAiProcessing
+                        ? "AI đang dọn dẹp âm thanh..."
+                        : "Dùng AI lọc tạp âm"}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {isAiProcessing
+                        ? "Vui lòng chờ khoảng 2-5 giây"
+                        : "Loại bỏ tiếng ồn nền, tiếng quạt gió..."}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex flex-col flex-1">
-                  <span className="text-sm font-bold flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-emerald-500" /> Dùng AI
-                    lọc tạp âm
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    Loại bỏ tiếng ồn nền, tiếng quạt gió...
-                  </span>
-                </div>
-              </div>
+              )}
             </div>
           ) : (
-            // GIAO DIỆN ĐANG THU
             <div className="w-full h-full flex flex-col items-center justify-center">
               <div className="text-center mb-6 h-32 flex flex-col justify-center">
                 <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-4">
@@ -822,7 +862,6 @@ export default function RecordingModal({
           )}
         </div>
 
-        {/* KHU VỰC NÚT BẤM */}
         <div className="space-y-4 mt-auto shrink-0 relative">
           {isNameModalOpen && (
             <div className="absolute inset-x-0 bottom-full mb-4 bg-card border border-border shadow-xl rounded-xl p-5 z-20 animate-in slide-in-from-bottom-4 duration-200">
@@ -920,16 +959,6 @@ export default function RecordingModal({
                   </Button>
                 )}
               </div>
-              {recordingStatus === "idle" && (
-                <div className="text-center">
-                  <Button
-                    variant="link"
-                    className="text-muted-foreground hover:text-primary"
-                  >
-                    Hoặc tải lên file có sẵn
-                  </Button>
-                </div>
-              )}
             </>
           )}
         </div>
