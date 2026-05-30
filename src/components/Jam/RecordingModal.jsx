@@ -537,28 +537,50 @@ export default function RecordingModal({
   };
 
   const handleToggleAI = async () => {
+    // 1. Tắt AI
     if (useAiClean) {
       setUseAiClean(false);
+      // Nếu có file gốc thì load file gốc, nếu là bản nháp thì load lại link nháp
       if (rawAudioBlob) {
         setPreviewAudioUrl(URL.createObjectURL(rawAudioBlob));
+      } else if (initialDraft) {
+        setPreviewAudioUrl(initialDraft.raw_audio_url);
       }
       return;
     }
 
+    // 2. Bật AI: Lấy từ Cache nếu đã lọc rồi
     if (cleanAudioBlob) {
       setUseAiClean(true);
       setPreviewAudioUrl(URL.createObjectURL(cleanAudioBlob));
       return;
     }
 
-    if (!rawAudioBlob) {
-      return;
+    // 3. XỬ LÝ FILE ĐẦU VÀO
+    let currentAudioBlob = rawAudioBlob;
+
+    // NẾU LÀ BẢN NHÁP (Chưa có Blob vật lý): Tải file từ URL về trước
+    if (!currentAudioBlob && initialDraft?.raw_audio_url) {
+      setIsAiProcessing(true);
+      try {
+        const res = await fetch(initialDraft.raw_audio_url);
+        currentAudioBlob = await res.blob();
+        setRawAudioBlob(currentAudioBlob); // Lưu lại Blob để dùng cho lần sau
+      } catch (error) {
+        console.error("Lỗi khi tải file nháp:", error);
+        alert("Không thể tải file nháp để xử lý AI. Vui lòng thử lại!");
+        setIsAiProcessing(false);
+        return;
+      }
     }
 
+    if (!currentAudioBlob) return;
+
+    // 4. Bắn file sang Python để lọc
     setIsAiProcessing(true);
     try {
       const formData = new FormData();
-      formData.append("audio", rawAudioBlob, "raw_record.webm");
+      formData.append("audio", currentAudioBlob, "raw_record.webm");
 
       const response = await fetch("http://localhost:8000/api/clean-audio", {
         method: "POST",
@@ -575,7 +597,7 @@ export default function RecordingModal({
     } catch (error) {
       console.error("Lỗi khi xử lý AI:", error);
       alert(
-        "Không thể xử lý AI! Vui lòng thử lại hoặc kiểm tra server AI." +
+        "Không thể xử lý AI! Vui lòng thử lại hoặc kiểm tra server AI. " +
           error.message,
       );
       setUseAiClean(false);
@@ -768,7 +790,7 @@ export default function RecordingModal({
                 />
               </div>
 
-              {rawAudioBlob && (
+              {(rawAudioBlob || initialDraft) && (
                 <div
                   className={`flex items-center gap-3 bg-background p-3 rounded-lg border w-full max-w-sm shadow-sm transition-all shrink-0 ${
                     isAiProcessing
