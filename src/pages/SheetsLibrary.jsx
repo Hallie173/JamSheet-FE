@@ -48,7 +48,7 @@ export default function SheetsLibrary() {
     tempo: "",
     genre: "",
     time_signature: "",
-    file: null,
+    files: [],
   });
 
   const [isJamModalOpen, setIsJamModalOpen] = useState(false);
@@ -174,7 +174,7 @@ export default function SheetsLibrary() {
         formData.append("folder", "jamsheet_sheets");
 
         // Gửi thẳng vào cloud name 'dfwrrelbq' của bạn
-        const res = await fetch(`https://api.cloudinary.com/v1_1/dfwrrelbq/image/upload`, {
+        const res = await fetch(`https://api.cloudinary.com/v1_1/dfwrrelbq/auto/upload`, {
           method: "POST",
           body: formData,
         });
@@ -753,7 +753,7 @@ export default function SheetsLibrary() {
                   type="file"
                   accept="image/*,.pdf"
                   onChange={(e) =>
-                    setUploadData({ ...uploadData, file: e.target.files[0] })
+                    setUploadData({ ...uploadData, files: Array.from(e.target.files) })
                   }
                   required
                   className="cursor-pointer"
