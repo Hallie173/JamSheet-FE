@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Music, Users, Clock, Play, Loader2 } from "lucide-react";
+import { Music, Users, Clock, Play, Loader2, Snowflake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function JamLobby() {
@@ -28,11 +28,14 @@ export default function JamLobby() {
     fetchLobbyJams();
   }, []);
 
+  const isFrozen = (room) => room.status === "archived";
+
   const renderRoomCard = (room) => {
     const totalInstruments = Math.max(
       room.tracks_config?.length || 0,
       room.required_instruments?.length || 0,
     );
+    const frozen = isFrozen(room);
 
     return (
       <div
@@ -40,8 +43,16 @@ export default function JamLobby() {
         onClick={() => (window.location.href = `/jam-room?id=${room._id}`)}
         className="group cursor-pointer border border-border rounded-2xl sm:rounded-xl overflow-hidden hover:border-primary/50 transition-colors bg-card shadow-xl sm:shadow-sm hover:shadow-md flex flex-col h-auto sm:h-32 relative"
       >
-        <div className="p-5 sm:p-4 flex-1">
-          <h3 className="font-bold text-lg sm:text-base mb-2 sm:mb-1 truncate group-hover:text-primary transition-colors pr-8">
+        {/* Nhãn FROZEN */}
+        {frozen && (
+          <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-blue-500 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md shadow-md">
+            <Snowflake className="w-3 h-3" />
+            FROZEN
+          </div>
+        )}
+
+        <div className={`p-5 sm:p-4 flex-1 ${frozen ? "pt-9 sm:pt-8" : ""}`}>
+          <h3 className="font-bold text-lg sm:text-base mb-2 sm:mb-1 truncate pr-8 transition-colors group-hover:text-primary">
             {room.title}
           </h3>
           <div className="flex items-center gap-4 text-xs sm:text-[11px] text-muted-foreground mt-3 sm:mt-2">
@@ -55,6 +66,8 @@ export default function JamLobby() {
             </div>
           </div>
         </div>
+
+        {/* Nút play */}
         <div className="absolute right-4 sm:right-3 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-primary/10 flex items-center justify-center sm:opacity-0 sm:group-hover:opacity-100 transition-all sm:translate-x-2 sm:group-hover:translate-x-0">
           <Play className="w-5 h-5 sm:w-4 sm:h-4 text-primary ml-1 sm:ml-0.5" />
         </div>

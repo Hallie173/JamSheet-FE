@@ -53,8 +53,10 @@ export default function Home() {
 
   const [recentProjects, setRecentProjects] = useState([]);
   const [trendingJams, setTrendingJams] = useState([]);
+  const [needsYouJams, setNeedsYouJams] = useState([]);
   const [isLoadingDrafts, setIsLoadingDrafts] = useState(false);
   const [isLoadingTrending, setIsLoadingTrending] = useState(false);
+  const [isLoadingNeedsYou, setIsLoadingNeedsYou] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -110,7 +112,27 @@ export default function Home() {
       }
     };
 
-    if (isLoggedIn) fetchRecentDrafts();
+    const fetchNeedsYou = async () => {
+      setIsLoadingNeedsYou(true);
+      try {
+        const res = await fetch(getApiUrl(API_ENDPOINTS.JAMS_NEEDS_YOU), {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setNeedsYouJams(data);
+        }
+      } catch (error) {
+        console.error("Lỗi tải needs-you:", error);
+      } finally {
+        setIsLoadingNeedsYou(false);
+      }
+    };
+
+    if (isLoggedIn) {
+      fetchRecentDrafts();
+      fetchNeedsYou();
+    }
     fetchTrendingJams();
   }, [isLoggedIn]);
 
@@ -141,17 +163,6 @@ export default function Home() {
   }, []);
 
   const CurrentDecorativeIcon = decorativeIcons[iconIndex];
-
-  const missingJams = [
-    {
-      id: 1,
-      title: "Bella Ciao",
-      creator: "HS",
-      missing: ["Piano", "Trumpet"],
-      filled: 2,
-      total: 4,
-    },
-  ];
 
   return (
     <div className="flex flex-col space-y-10 pb-10 px-4 sm:px-0">
@@ -235,7 +246,9 @@ export default function Home() {
                   key={project.draftId}
                   className="cursor-pointer hover:border-primary/50 transition-colors bg-card/50 rounded-2xl sm:rounded-xl shadow-xl sm:shadow-sm"
                   onClick={() =>
-                    (window.location.href = `/jam-room?id=${project.id}&draftId=${project.draftId}`)
+                    // FIX: Chỉ điều hướng đến phòng thu, không kèm draftId
+                    // để tránh tự động mở modal thu âm và bỏ qua kiểm tra frozen
+                    (window.location.href = `/jam-room?id=${project.id}`)
                   }
                 >
                   <CardContent className="p-5 flex items-center gap-4">
@@ -256,7 +269,7 @@ export default function Home() {
                         <div className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden">
                           <div
                             className="h-full bg-primary"
-                            style={{ width: `${project.progress}%` }}
+                            style={{ width: `${project.progress || 0}%` }}
                           ></div>
                         </div>
                         <span className="text-[10px] text-muted-foreground whitespace-nowrap">
@@ -341,69 +354,113 @@ export default function Home() {
         )}
       </section>
 
-      {/* PHẦN 4: PHÒNG JAM ĐANG THIẾU NHẠC CỤ */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Mic2 className="w-5 h-5 text-emerald-500" />
-            <h2 className="text-xl sm:text-2xl font-bold">
-              Cộng đồng đang cần bạn
-            </h2>
+      {/* PHẦN 4: PHÒNG JAM ĐANG THIẾU NHẠC CỤ (DỮ LIỆU THẬT) */}
+      {isLoggedIn && (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Mic2 className="w-5 h-5 text-emerald-500" />
+              <h2 className="text-xl sm:text-2xl font-bold">
+                Cộng đồng đang cần bạn
+              </h2>
+            </div>
+            <a href="/lobby">
+              <Button
+                variant="ghost"
+                className="h-10 px-3 sm:px-4 text-xs sm:text-sm text-muted-foreground hover:text-foreground rounded-xl sm:rounded-md"
+              >
+                Khám phá thêm <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </a>
           </div>
-          <a href="/lobby">
-            <Button
-              variant="ghost"
-              className="h-10 px-3 sm:px-4 text-xs sm:text-sm text-muted-foreground hover:text-foreground rounded-xl sm:rounded-md"
-            >
-              Khám phá thêm <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
-          </a>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {missingJams.map((jam) => (
-            <Card
-              key={jam.id}
-              className="cursor-pointer border-dashed border-2 hover:border-primary/50 hover:bg-card/80 transition-all bg-card/30 rounded-2xl sm:rounded-xl shadow-xl sm:shadow-sm"
-            >
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <h3 className="font-bold text-base leading-tight">
-                    {jam.title}
-                  </h3>
-                  <span className="text-[10px] sm:text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                    {jam.filled}/{jam.total} slot
+
+          {isLoadingNeedsYou ? (
+            <div className="flex justify-center p-6">
+              <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
+            </div>
+          ) : needsYouJams.length === 0 ? (
+            <div className="text-center p-6 bg-muted/20 border border-dashed rounded-2xl sm:rounded-xl text-muted-foreground">
+              {user?.instruments?.length > 0
+                ? "Hiện không có phòng Jam nào phù hợp với nhạc cụ của bạn."
+                : (
+                  <span>
+                    Hãy{" "}
+                    <a href="/profile" className="text-primary hover:underline font-semibold">
+                      thiết lập nhạc cụ trong Profile
+                    </a>{" "}
+                    để chúng tôi gợi ý phòng Jam phù hợp cho bạn.
                   </span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Host: {jam.creator}
-                </p>
-              </CardHeader>
-              <CardContent className="pb-4">
-                <p className="text-xs sm:text-sm mb-2 font-medium">
-                  Đang tìm kiếm:
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {jam.missing.map((inst) => (
-                    <span
-                      key={inst}
-                      className="text-[10px] sm:text-xs font-semibold bg-primary/15 text-primary border border-primary/20 px-2.5 py-1 rounded-md flex items-center gap-1.5"
+                )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {needsYouJams.map((jam) => (
+                <Card
+                  key={jam.id}
+                  className="cursor-pointer border-dashed border-2 hover:border-emerald-500/60 hover:bg-card/80 transition-all bg-card/30 rounded-2xl sm:rounded-xl shadow-xl sm:shadow-sm"
+                  onClick={() =>
+                    (window.location.href = `/jam-room?id=${jam.id}`)
+                  }
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                      <h3 className="font-bold text-base leading-tight">
+                        {jam.title}
+                      </h3>
+                      <span className="text-[10px] sm:text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full whitespace-nowrap ml-2 shrink-0">
+                        {jam.track_count}/{jam.total_slots} bản thu
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Host: {jam.creator}
+                    </p>
+                  </CardHeader>
+                  <CardContent className="pb-4">
+                    <p className="text-xs sm:text-sm mb-2 font-medium">
+                      Đang tìm kiếm:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {jam.missing_instruments.map((inst) => {
+                        const isMatch = jam.matching_instruments.includes(inst);
+                        return (
+                          <span
+                            key={inst}
+                            className={`text-[10px] sm:text-xs font-semibold px-2.5 py-1 rounded-md flex items-center gap-1.5 border ${
+                              isMatch
+                                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                                : "bg-muted/50 text-muted-foreground border-border"
+                            }`}
+                          >
+                            <Disc className="w-3 h-3" />
+                            {inst}
+                            {isMatch && (
+                              <span className="text-[8px] font-bold uppercase bg-emerald-500 text-white px-1 py-0.5 rounded">
+                                Bạn
+                              </span>
+                            )}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button
+                      className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white h-12 sm:h-10 text-base sm:text-sm rounded-xl sm:rounded-md font-semibold"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.location.href = `/jam-room?id=${jam.id}`;
+                      }}
                     >
-                      <Disc className="w-3 h-3" />
-                      {inst}
-                    </span>
-                  ))}
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button className="w-full gap-2 bg-foreground text-background hover:bg-foreground/90 h-12 sm:h-10 text-base sm:text-sm rounded-xl sm:rounded-md font-semibold">
-                  <Mic2 className="w-4 h-4" />
-                  Vào Jam ngay
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      </section>
+                      <Mic2 className="w-4 h-4" />
+                      Vào Jam ngay
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }
