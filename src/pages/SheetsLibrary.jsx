@@ -48,7 +48,7 @@ export default function SheetsLibrary() {
     tempo: "",
     genre: "",
     time_signature: "",
-    file: null,
+    files: [], // Đổi thành mảng files
   });
 
   const [isJamModalOpen, setIsJamModalOpen] = useState(false);
@@ -65,7 +65,6 @@ export default function SheetsLibrary() {
     if (isLoggedIn) fetchMySheets();
   }, [isLoggedIn]);
 
-  // Theo dõi thay đổi URL search parameters để tự động tìm kiếm
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.toString()) {
@@ -76,7 +75,6 @@ export default function SheetsLibrary() {
   const formatSheetData = (sheet) => ({
     ...sheet,
     id: sheet._id,
-    // LẤY TRANG ĐẦU TIÊN LÀM ẢNH BÌA
     thumbnail:
       sheet.file_urls && sheet.file_urls.length > 0
         ? sheet.file_urls[0]
@@ -119,9 +117,12 @@ export default function SheetsLibrary() {
   const fetchMySheets = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets/my-sheets`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets/my-sheets`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       const data = await res.json();
       if (res.ok) setMySheets(data.map(formatSheetData));
     } catch (error) {
@@ -151,10 +152,13 @@ export default function SheetsLibrary() {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets/${id}/like`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets/${id}/like`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       if (!res.ok) throw new Error("Lỗi Server");
     } catch (error) {
       console.error("Lỗi cập nhật Like:", error);
@@ -163,7 +167,8 @@ export default function SheetsLibrary() {
 
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
-    if (!uploadData.file) return alert("Vui lòng chọn file nhạc phổ!");
+    if (!uploadData.files || uploadData.files.length === 0)
+      return alert("Vui lòng chọn ít nhất 1 ảnh nhạc phổ!");
     if (!uploadData.title) return alert("Vui lòng nhập tên bài!");
     if (!uploadData.time_signature) return alert("Vui lòng nhập Nhịp!");
     if (!uploadData.instrument_tags) return alert("Vui lòng nhập Nhạc cụ!");
@@ -177,13 +182,20 @@ export default function SheetsLibrary() {
       formData.append("tempo", uploadData.tempo);
       formData.append("genre", uploadData.genre);
       formData.append("time_signature", uploadData.time_signature);
-      formData.append("file", uploadData.file);
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
+      // Lặp qua mảng files và append từng ảnh vào
+      uploadData.files.forEach((file) => {
+        formData.append("files", file); // Tên key phải map với upload.array('files')
       });
+
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        },
+      );
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
@@ -197,7 +209,7 @@ export default function SheetsLibrary() {
         tempo: "",
         genre: "",
         time_signature: "",
-        file: null,
+        files: [], // Trả về mảng rỗng
       });
       alert("Tải lên thành công!");
     } catch (error) {
@@ -227,14 +239,20 @@ export default function SheetsLibrary() {
         .map((t) => t.trim())
         .filter((t) => t !== "");
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            ...editFormData,
+            instrument_tags: updatedTags,
+          }),
         },
-        body: JSON.stringify({ ...editFormData, instrument_tags: updatedTags }),
-      });
+      );
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
@@ -253,10 +271,13 @@ export default function SheetsLibrary() {
     if (window.confirm("Bạn có chắc chắn muốn xóa nhạc phổ này?")) {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets/${id}`,
+          {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
         if (!res.ok) throw new Error("Lỗi server");
         setMySheets(mySheets.filter((s) => s.id !== id));
       } catch (error) {
@@ -345,19 +366,22 @@ export default function SheetsLibrary() {
         .map((i) => i.trim())
         .filter((i) => i);
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/jams`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/jams`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            ...jamFormData,
+            sheet_music_id: jamFormData.sheet_id,
+            tempo: Number(jamFormData.tempo),
+            required_instruments: instrumentsArray,
+          }),
         },
-        body: JSON.stringify({
-          ...jamFormData,
-          sheet_music_id: jamFormData.sheet_id,
-          tempo: Number(jamFormData.tempo),
-          required_instruments: instrumentsArray,
-        }),
-      });
+      );
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
@@ -368,7 +392,6 @@ export default function SheetsLibrary() {
     }
   };
 
-  // Component tái sử dụng cho giao diện Thẻ Nhạc Phổ (Card)
   const renderSheetCard = (sheet, isMySheet) => {
     const isLiked = sheet.liked_by.includes(currentUserId);
     const likeCount = sheet.liked_by.length;
@@ -392,7 +415,6 @@ export default function SheetsLibrary() {
           }
         }}
       >
-        {/* ===================== CÁC NÚT HOVER ===================== */}
         {isMySheet && editingSheetId !== sheet.id && (
           <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
             <Button
@@ -447,7 +469,6 @@ export default function SheetsLibrary() {
           </div>
         )}
 
-        {/* ===================== FORM CHỈNH SỬA (OVERLAY LÊN TRÊN) ===================== */}
         {isMySheet && editingSheetId === sheet.id && (
           <div
             className="p-4 flex flex-col gap-3 h-full bg-background absolute inset-0 z-20 overflow-y-auto"
@@ -562,15 +583,13 @@ export default function SheetsLibrary() {
           </div>
         )}
 
-        {/* ===================== NỘI DUNG CARD (LUÔN RENDER ĐỂ GIỮ KHUNG KHÔNG BỊ XẸP) ===================== */}
         <div className="aspect-[4/5] w-full bg-white dark:bg-white relative border-b border-border/50 overflow-hidden flex items-center justify-center">
           {isPdf && !isCloudinary ? (
             <FileText className="w-16 h-16 text-muted-foreground/50 group-hover:scale-110 transition-transform" />
           ) : (
             <img
               src={
-                finalImageUrl ||
-                "https://placehold.co/400x600?text=No+Image"
+                finalImageUrl || "https://placehold.co/400x600?text=No+Image"
               }
               onError={(e) => {
                 e.target.src =
@@ -598,7 +617,7 @@ export default function SheetsLibrary() {
             ))}
           </div>
         </div>
-        
+
         <CardHeader className="p-3 pb-0 shrink-0">
           <h3
             className="text-base font-bold leading-tight truncate"
@@ -640,7 +659,6 @@ export default function SheetsLibrary() {
 
   return (
     <div className="flex flex-col h-full space-y-8 relative pb-32 mb-8">
-      {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
@@ -663,7 +681,6 @@ export default function SheetsLibrary() {
         </Button>
       </div>
 
-      {/* KHU VỰC DỮ LIỆU CÁ NHÂN (MY SHEETS) */}
       <div className="space-y-4">
         <h2 className="text-xl font-bold border-b border-border pb-2">
           Nhạc phổ của tôi
@@ -704,7 +721,6 @@ export default function SheetsLibrary() {
         )}
       </div>
 
-      {/* KHU VỰC CỘNG ĐỒNG */}
       <div ref={exploreRef} className="space-y-4 pt-6">
         <div className="flex items-center gap-2">
           <Search className="w-5 h-5 text-primary" />
@@ -715,7 +731,6 @@ export default function SheetsLibrary() {
         </div>
       </div>
 
-      {/* MODAL UPLOAD */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
           <Card className="w-full max-w-lg bg-background p-6 shadow-2xl animate-in fade-in zoom-in-95">
@@ -734,16 +749,23 @@ export default function SheetsLibrary() {
             </div>
             <form onSubmit={handleUploadSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label>File Nhạc phổ (Ảnh hoặc PDF) *</Label>
+                <Label>File Nhạc phổ (Chọn một hoặc nhiều ảnh) *</Label>
                 <Input
                   type="file"
-                  accept="image/*,.pdf"
+                  accept="image/png, image/jpeg, image/jpg"
+                  multiple
                   onChange={(e) =>
-                    setUploadData({ ...uploadData, file: e.target.files[0] })
+                    setUploadData({
+                      ...uploadData,
+                      files: Array.from(e.target.files),
+                    })
                   }
                   required
                   className="cursor-pointer"
                 />
+                <p className="text-[10px] text-muted-foreground">
+                  Bạn có thể chọn nhiều ảnh cùng lúc để upload.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Tên bản nhạc *</Label>
@@ -833,7 +855,6 @@ export default function SheetsLibrary() {
         </div>
       )}
 
-      {/* MODAL XEM ẢNH TOÀN MÀN HÌNH (Đã nâng cấp hỗ trợ nhiều trang) */}
       {selectedSheet && (
         <div className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center animate-in fade-in duration-200">
           <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center text-white z-50 bg-gradient-to-b from-black/80 to-transparent">
@@ -872,7 +893,6 @@ export default function SheetsLibrary() {
 
           <div className="relative w-full h-full flex flex-col items-center justify-start p-4 pt-20 sm:p-12 overflow-y-auto custom-scrollbar gap-4">
             {selectedSheet.sheetUrls && selectedSheet.sheetUrls.length > 0 ? (
-              // Nếu mảng hình ảnh tồn tại, render dọc toàn bộ các trang (Giúp đọc Full PDF thoải mái)
               selectedSheet.sheetUrls.map((url, index) => (
                 <img
                   key={index}
@@ -882,14 +902,12 @@ export default function SheetsLibrary() {
                 />
               ))
             ) : selectedSheet.file_url?.toLowerCase().endsWith(".pdf") ? (
-              // Backup dành cho dữ liệu cũ (Dùng iframe)
               <iframe
                 src={selectedSheet.file_url}
                 className="w-full h-full rounded-md shadow-2xl bg-white"
                 title={selectedSheet.title}
               ></iframe>
             ) : (
-              // Backup ảnh đơn
               <img
                 src={selectedSheet.file_url}
                 alt="Sheet"
@@ -900,7 +918,6 @@ export default function SheetsLibrary() {
         </div>
       )}
 
-      {/* MODAL KHỞI TẠO PHÒNG JAM */}
       {isJamModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
           <Card className="w-full max-w-lg bg-background p-6 shadow-2xl animate-in fade-in zoom-in-95 border-primary/20 border-2">
@@ -919,7 +936,6 @@ export default function SheetsLibrary() {
             <form onSubmit={handleCreateJamSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label>Tên bài hát (Từ Nhạc phổ)</Label>
-                {/* Thuộc tính readOnly khóa input */}
                 <Input
                   value={jamFormData.title}
                   readOnly
@@ -986,7 +1002,6 @@ export default function SheetsLibrary() {
         </div>
       )}
 
-      {/* Spacer dự phòng để không dính lề */}
       <div className="w-full h-20 shrink-0"></div>
     </div>
   );
