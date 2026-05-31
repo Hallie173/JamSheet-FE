@@ -78,12 +78,6 @@ export default function SheetsLibrary() {
     required_instruments: "",
   });
 
-  // Theo dõi thay đổi URL search parameters để tự động tìm kiếm
-  useEffect(() => {
-    fetchExploreSheets();
-    if (isLoggedIn) fetchMySheets();
-  }, [location.search, isLoggedIn]);
-
   // 1. Dùng useCallback bọc lại hàm fetch cộng đồng
   const fetchExploreSheets = useCallback(async () => {
     try {
@@ -1109,7 +1103,7 @@ export default function SheetsLibrary() {
       )}
 
       {/* Spacer dự phòng để không dính lề */}
-      <div className="w-full h-20 shrink-0 sm:hidden"></div>
+      <div className="w-full h-20 shrink-0"></div>
     </div>
   );
 }

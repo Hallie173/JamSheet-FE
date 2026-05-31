@@ -393,7 +393,7 @@ export default function MyRecords() {
       </div>
 
       {/* Spacer dự phòng để không dính lề */}
-      <div className="w-full h-20 shrink-0 sm:hidden"></div>
+      <div className="w-full h-20 shrink-0"></div>
     </div>
   );
 }
