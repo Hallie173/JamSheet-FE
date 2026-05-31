@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Home, Mic2, Music, Library, User, LogOut, Moon } from "lucide-react";
 import blackLogo from "@/assets/black-logo.png";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,10 +14,36 @@ import {
 import { useTheme } from "@/hooks/useTheme";
 
 export default function Sidebar() {
-  const userString = localStorage.getItem("user");
-  const user = userString ? JSON.parse(userString) : null;
-  const isLoggedIn = !!user;
   const { theme, toggleTheme } = useTheme();
+
+  // Khởi tạo state từ localStorage
+  const [user, setUser] = useState(() => {
+    const userString = localStorage.getItem("user");
+    return userString ? JSON.parse(userString) : null;
+  });
+
+  const isLoggedIn = !!user;
+
+  // [MỚI] ĐỒNG BỘ HÓA ẢNH ĐẠI DIỆN TỪ SERVER LÊN SIDEBAR
+  useEffect(() => {
+    if (isLoggedIn) {
+      const fetchFreshProfile = async () => {
+        try {
+          const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/users/profile`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+          });
+          if (res.ok) {
+            const freshData = await res.json();
+            setUser(freshData); // Cập nhật UI Sidebar ngay lập tức
+            localStorage.setItem("user", JSON.stringify(freshData)); // Cập nhật lại bộ nhớ đệm
+          }
+        } catch (error) {
+          console.error("Lỗi đồng bộ Sidebar:", error);
+        }
+      };
+      fetchFreshProfile();
+    }
+  }, [isLoggedIn]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -64,8 +91,8 @@ export default function Sidebar() {
               <DropdownMenuTrigger asChild>
                 <button className="flex flex-col items-center gap-1 outline-none">
                   <Avatar className="w-6 h-6 border border-border">
-                    <AvatarImage src={user.avatar_url} />
-                    <AvatarFallback>{user.username.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={user?.avatar_url} />
+                    <AvatarFallback>{user?.username?.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <span className="text-[10px] text-muted-foreground leading-none">Cá nhân</span>
                 </button>
@@ -107,11 +134,11 @@ export default function Sidebar() {
             <DropdownMenuTrigger asChild>
               <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-accent transition-colors outline-none text-left">
                 <Avatar className="w-8 h-8">
-                  <AvatarImage src={user.avatar_url || "https://github.com/shadcn.png"} />
-                  <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
+                  <AvatarImage src={user?.avatar_url || "https://github.com/shadcn.png"} />
+                  <AvatarFallback>{user?.username?.charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col overflow-hidden">
-                  <span className="font-medium text-sm truncate">{user.username}</span>
+                  <span className="font-medium text-sm truncate">{user?.username}</span>
                 </div>
               </button>
             </DropdownMenuTrigger>
