@@ -186,6 +186,19 @@ export default function Header() {
             .
           </>
         );
+      case "orphaned_draft":
+        return (
+          <>
+            Nhạc phổ của phòng thu{" "}
+            <span className="font-semibold text-primary">
+              {notif.target_name}
+            </span>{" "}
+            đã bị xóa bởi chủ phòng.{" "}
+            <span className="font-semibold text-amber-500">
+              Bạn muốn làm gì với bản nháp của mình?
+            </span>
+          </>
+        );
       default:
         return <>{notif.message}</>;
     }

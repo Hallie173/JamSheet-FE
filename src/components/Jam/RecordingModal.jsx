@@ -10,6 +10,8 @@ import {
   FileText,
   Play,
   Pause,
+  Download,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -342,6 +344,9 @@ export default function RecordingModal({
   initialDraft,
   onClose,
 }) {
+  // Kiểm tra URL param orphaned=true (bản nháp thuộc phòng frozen)
+  const searchParams = new URLSearchParams(window.location.search);
+  const isOrphaned = searchParams.get("orphaned") === "true";
   const [autoScrollSpeed, setAutoScrollSpeed] = useState(1);
   const [recordingStatus, setRecordingStatus] = useState("idle");
   const [countdownBeat, setCountDownBeat] = useState(0);
@@ -710,26 +715,28 @@ export default function RecordingModal({
         <X className="w-5 h-5" />
       </Button>
 
-      {/* KHU VỰC NHẠC PHỔ */}
+        {/* KHU VỰC NHẠC PHỔ */}
       <div className="w-full h-[45vh] sm:h-full sm:flex-1 border-b sm:border-b-0 sm:border-r border-border p-2 sm:p-4 flex flex-col relative bg-muted/30">
         <div className="flex items-center justify-between mb-2 shrink-0">
           <h3 className="font-bold text-sm sm:text-lg flex items-center gap-1.5 sm:gap-2">
             <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-primary" /> Nhạc phổ
           </h3>
-          <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-sm text-muted-foreground mr-10 sm:mr-0">
-            <Label className="text-[10px] sm:text-sm">Tốc độ cuộn:</Label>
-            <Slider
-              value={[autoScrollSpeed]}
-              max={2}
-              min={0.1}
-              step={0.1}
-              onValueChange={(val) => setAutoScrollSpeed(val[0])}
-              className="w-16 sm:w-24 cursor-pointer"
-            />
-            <span className="w-6 sm:w-8 font-mono font-medium">
-              {autoScrollSpeed}x
-            </span>
-          </div>
+          {!isOrphaned && (
+            <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-sm text-muted-foreground mr-10 sm:mr-0">
+              <Label className="text-[10px] sm:text-sm">Tốc độ cuộn:</Label>
+              <Slider
+                value={[autoScrollSpeed]}
+                max={2}
+                min={0.1}
+                step={0.1}
+                onValueChange={(val) => setAutoScrollSpeed(val[0])}
+                className="w-16 sm:w-24 cursor-pointer"
+              />
+              <span className="w-6 sm:w-8 font-mono font-medium">
+                {autoScrollSpeed}x
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex-1 flex flex-col bg-white rounded-md shadow-inner border border-border/50 overflow-hidden relative">
@@ -737,7 +744,17 @@ export default function RecordingModal({
             ref={sheetContainerRef}
             className="flex-1 h-full bg-white rounded-md shadow-inner border border-border/50 overflow-y-auto custom-scrollbar relative p-2 sm:p-4"
           >
-            {activeRoom?.sheetUrls && activeRoom.sheetUrls.length > 0 ? (
+            {isOrphaned ? (
+              // Chế độ orphaned: không hiển thị nhạc phổ
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-muted/20">
+                <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-amber-500" />
+                </div>
+                <p className="text-sm sm:text-base text-center text-muted-foreground px-6 leading-relaxed">
+                  Nhạc phổ này không còn tồn tại do chủ phòng đã xóa. Bạn chỉ có thể tải bản nháp về máy.
+                </p>
+              </div>
+            ) : activeRoom?.sheetUrls && activeRoom.sheetUrls.length > 0 ? (
               <div className="flex flex-col gap-2 sm:gap-4">
                 {activeRoom.sheetUrls.map((url, index) => (
                   <img
@@ -943,34 +960,74 @@ export default function RecordingModal({
             <div
               className={`flex flex-col gap-2.5 sm:gap-3 transition-opacity ${isNameModalOpen ? "opacity-30 pointer-events-none" : ""}`}
             >
-              <div className="flex items-center gap-2.5 sm:gap-3">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="flex-1 h-12 sm:h-12 font-bold text-xs sm:text-sm rounded-xl sm:rounded-md"
-                  onClick={cancelPreview}
-                >
-                  Thu lại
-                </Button>
-                <Button
-                  size="lg"
-                  variant="secondary"
-                  className="flex-1 h-12 sm:h-12 font-bold bg-muted hover:bg-muted/80 text-xs sm:text-sm rounded-xl sm:rounded-md"
-                  onClick={() => openNameModal("draft")}
-                  disabled={isUploading}
-                >
-                  {isUploading && <Loader2 className="w-4 h-4 mr-1.5 sm:mr-2 animate-spin" />}
-                  {isUploading ? "Đang xử lý..." : "Lưu nháp"}
-                </Button>
-              </div>
-              <Button
-                size="lg"
-                className="w-full h-12 sm:h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm sm:text-xl shadow-lg shadow-primary/20 rounded-xl sm:rounded-md"
-                onClick={() => openNameModal("published")}
-                disabled={isUploading}
-              >
-                <UploadCloud className="w-5 h-5 sm:w-6 sm:h-6 mr-1.5 sm:mr-2" /> Nộp bản thu
-              </Button>
+              {isOrphaned ? (
+                // Chế độ orphaned: chỉ cho tải về, không thu lại hay nộp
+                <>
+                  <div className="flex items-center gap-2.5">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="flex-1 h-12 sm:h-12 font-bold text-xs sm:text-sm rounded-xl sm:rounded-md opacity-50"
+                      disabled
+                    >
+                      Thu lại
+                    </Button>
+                    <Button
+                      size="lg"
+                      variant="secondary"
+                      className="flex-1 h-12 sm:h-12 font-bold bg-muted text-xs sm:text-sm rounded-xl sm:rounded-md opacity-50"
+                      disabled
+                    >
+                      Lưu nháp
+                    </Button>
+                  </div>
+                  <a
+                    href={initialDraft?.raw_audio_url}
+                    download={`${initialDraft?.name || "ban-nhap"}.webm`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Button
+                      size="lg"
+                      className="w-full h-12 sm:h-14 bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm sm:text-xl shadow-lg shadow-amber-500/20 rounded-xl sm:rounded-md"
+                    >
+                      <Download className="w-5 h-5 sm:w-6 sm:h-6 mr-1.5 sm:mr-2" /> Tải bản nháp xuống
+                    </Button>
+                  </a>
+                </>
+              ) : (
+                // Chế độ bình thường
+                <>
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="flex-1 h-12 sm:h-12 font-bold text-xs sm:text-sm rounded-xl sm:rounded-md"
+                      onClick={cancelPreview}
+                    >
+                      Thu lại
+                    </Button>
+                    <Button
+                      size="lg"
+                      variant="secondary"
+                      className="flex-1 h-12 sm:h-12 font-bold bg-muted hover:bg-muted/80 text-xs sm:text-sm rounded-xl sm:rounded-md"
+                      onClick={() => openNameModal("draft")}
+                      disabled={isUploading}
+                    >
+                      {isUploading && <Loader2 className="w-4 h-4 mr-1.5 sm:mr-2 animate-spin" />}
+                      {isUploading ? "Đang xử lý..." : "Lưu nháp"}
+                    </Button>
+                  </div>
+                  <Button
+                    size="lg"
+                    className="w-full h-12 sm:h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm sm:text-xl shadow-lg shadow-primary/20 rounded-xl sm:rounded-md"
+                    onClick={() => openNameModal("published")}
+                    disabled={isUploading}
+                  >
+                    <UploadCloud className="w-5 h-5 sm:w-6 sm:h-6 mr-1.5 sm:mr-2" /> Nộp bản thu
+                  </Button>
+                </>
+              )}
             </div>
           ) : (
             <>

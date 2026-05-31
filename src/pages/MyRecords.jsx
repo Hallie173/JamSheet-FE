@@ -9,6 +9,9 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  Download,
+  AlertTriangle,
+  Snowflake,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getApiUrl, API_ENDPOINTS } from "@/lib/constants";
@@ -20,6 +23,10 @@ export default function MyRecords() {
   const [myRecords, setMyRecords] = useState([]);
   const [isLoadingMyRecords, setIsLoadingMyRecords] = useState(false);
 
+  // State cho Bản nháp mồ côi
+  const [orphanedDrafts, setOrphanedDrafts] = useState([]);
+  const [isLoadingOrphaned, setIsLoadingOrphaned] = useState(false);
+
   // State cho Khám phá cộng đồng
   const [exploreRecords, setExploreRecords] = useState([]);
   const [isLoadingExplore, setIsLoadingExplore] = useState(false);
@@ -27,12 +34,13 @@ export default function MyRecords() {
   // --- PAGINATION STATES ---
   const [myRecordsPage, setMyRecordsPage] = useState(1);
   const [exploreRecordsPage, setExploreRecordsPage] = useState(1);
-  const ITEMS_PER_PAGE = 6; // Tối đa 6 item (3 dòng x 2 cột) trên mobile
+  const ITEMS_PER_PAGE = 6;
 
   // Fetch dữ liệu khi vào trang
   useEffect(() => {
     if (isLoggedIn) {
       fetchMyRecords();
+      fetchOrphanedDrafts();
     }
     fetchExploreRecords();
   }, [isLoggedIn]);
@@ -54,6 +62,39 @@ export default function MyRecords() {
       console.error("Lỗi tải bản thu của tôi:", error);
     } finally {
       setIsLoadingMyRecords(false);
+    }
+  };
+
+  const fetchOrphanedDrafts = async () => {
+    setIsLoadingOrphaned(true);
+    try {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.JAMS_ORPHANED_DRAFTS), {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setOrphanedDrafts(data);
+      }
+    } catch (error) {
+      console.error("Lỗi tải bản nháp mồ côi:", error);
+    } finally {
+      setIsLoadingOrphaned(false);
+    }
+  };
+
+  const handleDeleteOrphaned = async (e, trackId) => {
+    e.stopPropagation();
+    if (window.confirm("Xóa bản nháp này? Hành động không thể hoàn tác.")) {
+      try {
+        const res = await fetch(
+          getApiUrl(API_ENDPOINTS.JAMS_TRACK_DELETE(trackId)),
+          { method: "DELETE", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } },
+        );
+        if (!res.ok) throw new Error("Lỗi server");
+        setOrphanedDrafts(orphanedDrafts.filter((d) => d._id !== trackId));
+      } catch (error) {
+        alert("Lỗi xóa: " + error.message);
+      }
     }
   };
 
@@ -160,6 +201,83 @@ export default function MyRecords() {
           </p>
         </div>
       </div>
+
+      {/* === SECTION: BẢN NHÁP MỒ CÔI (chỉ hiện khi có dữ liệu) === */}
+      {isLoggedIn && (isLoadingOrphaned || orphanedDrafts.length > 0) && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-amber-500/15">
+              <AlertTriangle className="w-4 h-4 text-amber-500" />
+            </div>
+            <h2 className="text-lg sm:text-xl font-bold text-amber-600 dark:text-amber-400">
+              Bản nháp mồ côi
+            </h2>
+            <span className="text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20">
+              {orphanedDrafts.length} bản thu
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Các bản nháp này thuộc phòng có nhạc phổ đã bị xóa. Bạn có thể nghe lại hoặc tải về trước khi xóa.
+          </p>
+
+          {isLoadingOrphaned ? (
+            <div className="flex justify-center p-6">
+              <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+              {orphanedDrafts.map((draft) => (
+                <div
+                  key={draft._id}
+                  className="group relative flex flex-col cursor-pointer border border-amber-500/30 rounded-xl overflow-hidden hover:border-amber-500/60 transition-colors bg-amber-500/5 hover:bg-amber-500/10 shadow-sm"
+                  onClick={() =>
+                    (window.location.href = `/jam-room?id=${draft.project_id}&draftId=${draft._id}&orphaned=true`)
+                  }
+                >
+                  {/* Nhãn FROZEN */}
+                  <div className="absolute top-2 right-2 flex items-center gap-1 bg-blue-500 text-white text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded z-10">
+                    <Snowflake className="w-2.5 h-2.5" />
+                    FROZEN
+                  </div>
+
+                  {/* Nút Xóa */}
+                  <div className="absolute top-2 left-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10">
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-7 w-7 bg-background/90 hover:bg-background shadow-md backdrop-blur-sm hover:text-destructive rounded-md"
+                      onClick={(e) => handleDeleteOrphaned(e, draft._id)}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-muted-foreground group-hover:text-destructive" />
+                    </Button>
+                  </div>
+
+                  <div className="aspect-square bg-amber-500/10 flex items-center justify-center">
+                    <Disc className="w-16 h-16 sm:w-20 sm:h-20 text-amber-400/50 group-hover:text-amber-500/70 transition-colors duration-300" />
+                  </div>
+
+                  <div className="p-3 sm:p-4 flex flex-col flex-1 border-t border-amber-500/20">
+                    <h3 className="font-bold text-xs sm:text-sm truncate" title={draft.name}>
+                      {draft.name}
+                    </h3>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground truncate mt-0.5" title={draft.project_title}>
+                      {draft.project_title}
+                    </p>
+                    <div className="mt-auto pt-2 flex items-center justify-between">
+                      <span className="text-[9px] sm:text-[10px] uppercase tracking-wider font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-sm max-w-[70px] truncate">
+                        {draft.instrument}
+                      </span>
+                      <span className="text-[10px] sm:text-xs text-muted-foreground">
+                        {formatDuration(draft.duration)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Khu vực Dữ liệu cá nhân */}
       <div
