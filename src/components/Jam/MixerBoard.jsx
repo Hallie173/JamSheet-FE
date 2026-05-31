@@ -247,6 +247,7 @@ export default function MixerBoard() {
     if (masterGainRef.current)
       masterGainRef.current.gain.value = masterVolume / 100;
   }, [masterVolume]);
+
   useEffect(() => {
     currentTracks.forEach((track) => {
       if (trackGainsRef.current[track.id])
@@ -290,18 +291,16 @@ export default function MixerBoard() {
     }
   };
 
-  // ĐÃ SỬA: Tính năng Auto-Save khi vừa thêm nhạc cụ
   const handleAddNewTrack = () => {
     if (!newInstrumentName.trim()) return;
     addNewTrack(newInstrumentName.trim());
     setNewInstrumentName("");
     setIsAddingTrack(false);
 
-    // Tự động lưu cấu hình lên server để chống mất dữ liệu khi F5
     if (activeRoom?.id) {
       setTimeout(() => {
         saveMixToCloud(activeRoom.id);
-      }, 100); // Đợi 100ms cho Zustand cập nhật RAM xong mới đẩy lên Cloud
+      }, 100);
     }
   };
 
@@ -352,36 +351,53 @@ export default function MixerBoard() {
   const markers = Array.from({ length: markersCount }, (_, i) => i * 5);
 
   return (
-    <div className="flex flex-col h-full bg-background border border-border rounded-xl overflow-hidden shadow-sm">
-      <div className="h-20 bg-card border-b border-border flex items-center justify-between px-4 shrink-0">
-        <div className="flex items-center gap-3 w-80">
-          <div className="w-10 h-10 rounded-md bg-primary/20 flex items-center justify-center border border-primary/30 shrink-0">
-            <Mic2 className="w-5 h-5 text-primary" />
+    <div className="flex flex-col h-full bg-background border-x-0 sm:border border-border sm:rounded-xl overflow-hidden shadow-sm">
+      {/* HEADER MIXERBOARD */}
+      <div className="h-auto sm:h-20 bg-card border-b border-border flex flex-col sm:flex-row items-center justify-between px-3 sm:px-4 shrink-0 py-3 sm:py-0 gap-3 sm:gap-0">
+        <div className="flex items-center justify-between w-full sm:w-80">
+          <div className="flex items-center gap-2 sm:gap-3 overflow-hidden">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-md bg-primary/20 flex items-center justify-center border border-primary/30 shrink-0">
+              <Mic2 className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+            </div>
+            <div className="flex flex-col overflow-hidden">
+              <h2 className="font-bold leading-tight truncate text-foreground text-sm sm:text-base">
+                {activeRoom.title}
+              </h2>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
+                BPM: {activeRoom.tempo} • {activeRoom.timeSignature}
+              </p>
+            </div>
           </div>
-          <div className="flex flex-col w-full overflow-hidden">
-            <h2 className="font-bold leading-tight truncate text-foreground">
-              {activeRoom.title}
-            </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              BPM: {activeRoom.tempo} • {activeRoom.timeSignature}
-            </p>
-          </div>
+          <Button
+            variant="default"
+            size="sm"
+            className="sm:hidden gap-1.5 shadow-md h-9 px-3 text-xs rounded-xl"
+            onClick={handleSaveMix}
+            disabled={isSaving || isArchived}
+          >
+            {isSaving ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Download className="w-3.5 h-3.5" />
+            )}
+            Lưu Mix
+          </Button>
         </div>
 
-        <div className="flex flex-col items-center justify-center flex-1">
+        <div className="flex flex-col items-center justify-center w-full sm:flex-1">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
               size="icon"
               onClick={handleStop}
-              className="text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground w-10 h-10 sm:w-10 sm:h-10 rounded-full"
             >
-              <SkipBack className="w-5 h-5 fill-current" />
+              <SkipBack className="w-5 h-5 sm:w-5 sm:h-5 fill-current" />
             </Button>
             <Button
               variant="default"
               size="icon"
-              className={`w-11 h-11 rounded-full shadow-lg shadow-primary/20 ${!hasAnyAudio && !isPlaying ? "opacity-50" : ""}`}
+              className={`w-12 h-12 sm:w-11 sm:h-11 rounded-full shadow-lg shadow-primary/20 ${!hasAnyAudio && !isPlaying ? "opacity-50" : ""}`}
               onClick={togglePlay}
               disabled={isLoadingAudio || (!hasAnyAudio && !isPlaying)}
             >
@@ -397,17 +413,17 @@ export default function MixerBoard() {
               variant="ghost"
               size="icon"
               onClick={handleStop}
-              className="text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground w-10 h-10 sm:w-10 sm:h-10 rounded-full"
             >
-              <Square className="w-4 h-4 fill-current" />
+              <Square className="w-4 h-4 sm:w-4 sm:h-4 fill-current" />
             </Button>
           </div>
-          <div className="text-xs font-mono font-medium text-muted-foreground mt-1.5 tracking-wider">
+          <div className="text-[10px] sm:text-xs font-mono font-medium text-muted-foreground mt-1 sm:mt-1.5 tracking-wider">
             {formatTime(playbackTime)} / {formatTime(maxAudioDuration)}
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-4 w-80">
+        <div className="hidden sm:flex items-center justify-end gap-4 w-full sm:w-80">
           <div className="flex items-center gap-2 w-32">
             <Volume2 className="w-4 h-4 text-muted-foreground" />
             <Slider
@@ -421,7 +437,7 @@ export default function MixerBoard() {
           <Button
             variant="default"
             size="sm"
-            className="gap-2 shadow-md shadow-primary/20"
+            className="gap-2 shadow-md shadow-primary/20 h-10 rounded-md"
             onClick={handleSaveMix}
             disabled={isSaving || isArchived}
           >
@@ -429,55 +445,55 @@ export default function MixerBoard() {
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Download className="w-4 h-4" />
-            )}{" "}
+            )}
             Lưu Mix
           </Button>
         </div>
       </div>
 
       {isArchived && (
-        <div className="bg-amber-500/10 border-y border-amber-500/30 px-6 py-2.5 flex items-center justify-center gap-3 shrink-0 z-20">
-          <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
-          <p className="text-amber-500/90 text-sm font-medium">
-            <strong className="text-amber-500">Phòng thu đã đóng băng:</strong>{" "}
-            Nhạc phổ gốc đã bị gỡ. Bạn vẫn có thể nghe các bản phối nhưng không
+        <div className="bg-amber-500/10 border-y border-amber-500/30 px-4 sm:px-6 py-2 flex items-center justify-center gap-2 sm:gap-3 shrink-0 z-20">
+          <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 shrink-0" />
+          <p className="text-amber-500/90 text-[11px] sm:text-sm font-medium">
+            <strong className="text-amber-500">Phòng thu đã đóng:</strong> Không
             thể thu âm thêm.
           </p>
         </div>
       )}
 
+      {/* KHU VỰC MIXER (Track + Waveform) */}
       <div className="flex flex-1 overflow-hidden relative">
-        <div className="w-72 border-r border-border bg-background flex flex-col z-10 overflow-y-auto shrink-0 shadow-[4px_0_15px_rgba(0,0,0,0.1)]">
-          <div className="h-8 border-b border-border flex items-center px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider bg-muted/40 sticky top-0 z-10">
-            Các Kệ Nhạc Cụ
+        <div className="w-40 sm:w-72 border-r border-border bg-background flex flex-col z-10 overflow-y-auto shrink-0 shadow-[2px_0_10px_rgba(0,0,0,0.05)] sm:shadow-[4px_0_15px_rgba(0,0,0,0.1)]">
+          <div className="h-8 border-b border-border flex items-center px-2 sm:px-4 text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-wider bg-muted/40 sticky top-0 z-10">
+            Kệ Nhạc Cụ
           </div>
-          <div className="flex flex-col gap-3 p-3">
+          <div className="flex flex-col gap-2 sm:gap-3 p-2 sm:p-3">
             {currentTracks.map((track) => (
               <Card
                 key={track.id}
-                className="h-28 flex flex-col p-0 rounded-lg overflow-hidden border-border bg-card shadow hover:shadow-md transition-all relative group"
+                className="h-24 sm:h-28 flex flex-col p-0 rounded-lg sm:rounded-lg overflow-hidden border-border bg-card shadow hover:shadow-md transition-all relative group"
               >
                 <div
-                  className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg z-10"
+                  className="absolute left-0 top-0 bottom-0 w-1 sm:w-1 z-10"
                   style={{ backgroundColor: track.waveColor }}
                 />
-                <div className="flex flex-col h-full p-3 pl-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      <Avatar className="w-7 h-7 border border-border/50 shadow-inner">
+                <div className="flex flex-col h-full p-2 sm:p-3 pl-3 sm:pl-4">
+                  <div className="flex items-start justify-between mb-1 sm:mb-2">
+                    <div className="flex items-center gap-1.5 sm:gap-2 overflow-hidden">
+                      <Avatar className="w-6 h-6 sm:w-7 sm:h-7 border border-border/50 shadow-inner">
                         {track.avatar ? (
                           <AvatarImage src={track.avatar} />
                         ) : (
-                          <AvatarFallback className="bg-muted text-[10px]">
+                          <AvatarFallback className="bg-muted text-[9px] sm:text-[10px]">
                             ?
                           </AvatarFallback>
                         )}
                       </Avatar>
                       <div className="flex flex-col overflow-hidden">
-                        <span className="font-bold text-sm truncate leading-tight">
+                        <span className="font-bold text-xs sm:text-sm truncate leading-tight">
                           {track.instrument}
                         </span>
-                        <span className="text-[10px] text-muted-foreground truncate">
+                        <span className="hidden sm:block text-[10px] text-muted-foreground truncate">
                           {track.user}
                         </span>
                       </div>
@@ -485,33 +501,34 @@ export default function MixerBoard() {
 
                     {!isArchived && (
                       <div
-                        className="absolute top-2 right-2 z-40 flex items-center justify-end bg-white/80 dark:bg-white/20 backdrop-blur-md border border-black/10 dark:border-white/20 hover:bg-foreground hover:text-background rounded-full h-8 w-8 overflow-hidden transition-all duration-300 hover:w-[110px] hover:bg-white dark:hover:bg-white hover:text-black cursor-pointer shadow-md group/add"
+                        className="absolute top-1.5 sm:top-2 right-1.5 sm:right-2 z-40 flex items-center justify-end bg-white/80 dark:bg-white/20 backdrop-blur-md border border-black/10 dark:border-white/20 hover:bg-foreground hover:text-background rounded-full h-6 w-6 sm:h-8 sm:w-8 overflow-hidden transition-all duration-300 sm:hover:w-[110px] sm:hover:bg-white sm:dark:hover:bg-white sm:hover:text-black cursor-pointer shadow-md group/add"
                         onClick={(e) => {
                           e.stopPropagation();
                           if (isPlaying) handleStop();
                           setRecordingTrack(track);
                         }}
                       >
-                        <span className="text-xs font-semibold whitespace-nowrap opacity-0 group-hover/add:opacity-100 transition-opacity duration-300">
+                        <span className="hidden sm:block text-xs font-semibold whitespace-nowrap opacity-0 group-hover/add:opacity-100 transition-opacity duration-300">
                           Bản thu mới
                         </span>
-                        <div className="w-8 h-8 flex items-center justify-center shrink-0">
-                          <Plus className="w-4 h-4" />
+                        <div className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center shrink-0">
+                          <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                         </div>
                       </div>
                     )}
                   </div>
-                  <div className="mt-auto flex items-center gap-2.5">
+
+                  <div className="mt-auto flex items-center gap-1.5 sm:gap-2.5">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="outline"
                           size="sm"
-                          className={`h-7 px-2.5 flex gap-1.5 transition-colors ${track.records.length > 0 ? "text-primary border-primary/50 bg-primary/10" : "text-muted-foreground"}`}
+                          className={`h-6 sm:h-7 px-1.5 sm:px-2.5 flex gap-1 sm:gap-1.5 transition-colors ${track.records.length > 0 ? "text-primary border-primary/50 bg-primary/10" : "text-muted-foreground"}`}
                           disabled={track.records.length === 0}
                         >
-                          <Layers className="w-3.5 h-3.5" />
-                          <span className="text-[10px] font-bold">
+                          <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                          <span className="text-[9px] sm:text-[10px] font-bold">
                             {track.records.length}
                           </span>
                         </Button>
@@ -519,9 +536,9 @@ export default function MixerBoard() {
                       <DropdownMenuContent
                         side="right"
                         align="start"
-                        className="w-56 ml-3 shadow-xl"
+                        className="w-48 sm:w-56 ml-3 shadow-xl rounded-xl sm:rounded-md"
                       >
-                        <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">
+                        <DropdownMenuLabel className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">
                           Chọn bản thu
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
@@ -533,13 +550,13 @@ export default function MixerBoard() {
                               if (isPlaying) handleStop();
                               changeActiveRecord(track.id, record.id);
                             }}
-                            className={`cursor-pointer flex justify-between py-2 ${track.activeRecordId === record.id ? "bg-primary/10 text-primary" : ""}`}
+                            className={`cursor-pointer flex justify-between py-2 sm:py-2 ${track.activeRecordId === record.id ? "bg-primary/10 text-primary" : ""}`}
                           >
-                            <span className="text-sm font-medium truncate pr-4">
+                            <span className="text-xs sm:text-sm font-medium truncate pr-4">
                               {record.name}
                             </span>
                             {track.activeRecordId === record.id && (
-                              <Check className="w-4 h-4 text-primary shrink-0" />
+                              <Check className="w-3 h-3 sm:w-4 sm:h-4 text-primary shrink-0" />
                             )}
                           </DropdownMenuItem>
                         ))}
@@ -552,12 +569,11 @@ export default function MixerBoard() {
                       );
                       const isLikedByMe =
                         activeRecord?.liked_by?.includes(currentUserId);
-
                       return activeRecord ? (
                         <Button
                           variant="ghost"
                           size="sm"
-                          className={`h-7 px-2 flex gap-1 transition-colors ${
+                          className={`h-6 sm:h-7 px-1 sm:px-2 flex gap-1 transition-colors ${
                             isLikedByMe
                               ? "text-red-500 hover:text-red-600 hover:bg-red-500/10"
                               : "text-muted-foreground"
@@ -570,17 +586,17 @@ export default function MixerBoard() {
                           }}
                         >
                           <Heart
-                            className={`w-3.5 h-3.5 ${isLikedByMe ? "fill-current" : ""}`}
+                            className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${isLikedByMe ? "fill-current" : ""}`}
                           />
-                          <span className="text-[10px] font-bold">
+                          <span className="text-[9px] sm:text-[10px] font-bold">
                             {activeRecord.liked_by?.length || 0}
                           </span>
                         </Button>
                       ) : null;
                     })()}
 
-                    <div className="flex-1 px-1 flex items-center gap-2">
-                      <Volume2 className="w-4 h-4 text-foreground/70 shrink-0" />
+                    <div className="flex-1 px-0.5 sm:px-1 flex items-center gap-1 sm:gap-2 hidden sm:flex">
+                      <Volume2 className="w-3 h-3 sm:w-4 sm:h-4 text-foreground/70 shrink-0" />
                       <Slider
                         value={[track.volume]}
                         max={100}
@@ -598,11 +614,11 @@ export default function MixerBoard() {
             <div className="pt-1 pb-4">
               {!isArchived &&
                 (isAddingTrack ? (
-                  <div className="flex flex-col gap-2 bg-muted/30 p-2.5 rounded-lg border border-border shadow-inner animate-in fade-in zoom-in-95 duration-200">
+                  <div className="flex flex-col gap-2 bg-muted/30 p-2 sm:p-2.5 rounded-lg border border-border shadow-inner animate-in fade-in zoom-in-95 duration-200">
                     <input
                       type="text"
-                      placeholder="VD: Violin..."
-                      className="w-full text-sm font-medium bg-background border border-border rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary"
+                      placeholder="Tên nhạc cụ..."
+                      className="w-full text-xs sm:text-sm font-medium bg-background border border-border rounded-md px-2 py-1.5 sm:px-2.5 sm:py-1.5 focus:outline-none focus:ring-1 focus:ring-primary"
                       value={newInstrumentName}
                       onChange={(e) => setNewInstrumentName(e.target.value)}
                       autoFocus
@@ -611,31 +627,32 @@ export default function MixerBoard() {
                         if (e.key === "Escape") setIsAddingTrack(false);
                       }}
                     />
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-1.5 sm:gap-2 mt-1">
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1 h-7 text-xs"
+                        className="flex-1 h-6 sm:h-7 text-[10px] sm:text-xs rounded-md"
                         onClick={() => setIsAddingTrack(false)}
                       >
                         Hủy
                       </Button>
                       <Button
                         size="sm"
-                        className="flex-1 h-7 text-xs"
+                        className="flex-1 h-6 sm:h-7 text-[10px] sm:text-xs rounded-md"
                         onClick={handleAddNewTrack}
                       >
-                        Thêm Kệ
+                        Thêm
                       </Button>
                     </div>
                   </div>
                 ) : (
                   <Button
                     variant="outline"
-                    className="w-full border-dashed hover:border-primary hover:text-primary transition-colors h-10"
+                    className="w-full border-dashed hover:border-primary hover:text-primary transition-colors h-8 sm:h-10 text-[10px] sm:text-sm rounded-lg sm:rounded-md"
                     onClick={() => setIsAddingTrack(true)}
                   >
-                    <Plus className="w-4 h-4 mr-1.5" /> Thêm kệ nhạc cụ
+                    <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-1.5" />{" "}
+                    Thêm kệ
                   </Button>
                 ))}
             </div>
@@ -652,7 +669,7 @@ export default function MixerBoard() {
               {markers.map((time) => (
                 <div
                   key={time}
-                  className="absolute border-l border-border/50 h-3 text-[10px] text-muted-foreground pl-1 select-none"
+                  className="absolute border-l border-border/50 h-3 text-[9px] sm:text-[10px] text-muted-foreground pl-1 select-none"
                   style={{ left: `${(time / maxAudioDuration) * 100}%` }}
                 >
                   {formatTime(time)}
@@ -667,7 +684,7 @@ export default function MixerBoard() {
                 return (
                   <div
                     key={track.id}
-                    className="h-28 border-b border-border/50 relative group bg-[url('/grid.svg')] bg-center pointer-events-none"
+                    className="h-24 sm:h-28 border-b border-border/50 relative group bg-[url('/grid.svg')] bg-center pointer-events-none"
                   >
                     <div className="absolute w-full h-px bg-border/20 top-1/2 -translate-y-1/2"></div>
                     {activeRecord && activeRecord.audioUrl ? (
@@ -682,17 +699,17 @@ export default function MixerBoard() {
                       />
                     ) : (
                       <div
-                        className={`absolute inset-2 border-2 border-dashed flex items-center justify-center rounded-md text-sm font-medium z-30 ${isArchived ? "border-muted/30 bg-muted/5 text-muted-foreground/30 cursor-not-allowed" : "border-muted bg-muted/10 text-muted-foreground hover:border-border hover:bg-muted/20 cursor-pointer pointer-events-auto transition-colors"}`}
+                        className={`absolute inset-2 border-2 border-dashed flex items-center justify-center rounded-md text-[10px] sm:text-sm font-medium z-30 ${isArchived ? "border-muted/30 bg-muted/5 text-muted-foreground/30 cursor-not-allowed" : "border-muted bg-muted/10 text-muted-foreground hover:border-border hover:bg-muted/20 cursor-pointer pointer-events-auto transition-colors"}`}
                         onClick={(e) => {
-                          if (isArchived) return; // CHẶN CLICK
+                          if (isArchived) return;
                           e.stopPropagation();
                           if (isPlaying) handleStop();
                           setRecordingTrack(track);
                         }}
                       >
                         {isArchived
-                          ? "Kệ trống (Đã đóng)"
-                          : `+ Nhấp để nộp bản thu ${track.instrument}`}
+                          ? "Đã đóng"
+                          : `+ Nộp bản thu ${track.instrument}`}
                       </div>
                     )}
                   </div>
@@ -702,7 +719,7 @@ export default function MixerBoard() {
                 className="absolute top-0 bottom-0 w-px bg-primary z-20 shadow-[0_0_15px_rgba(255,255,255,0.7)] pointer-events-none"
                 style={{ left: `${(playbackTime / maxAudioDuration) * 100}%` }}
               >
-                <div className="absolute -top-3 -left-2.5 w-0 h-0 border-l-[10px] border-r-[10px] border-t-[14px] border-transparent border-t-primary shadow"></div>
+                <div className="absolute -top-3 -left-2.5 w-0 h-0 border-l-[8px] sm:border-l-[10px] border-r-[8px] sm:border-r-[10px] border-t-[12px] sm:border-t-[14px] border-transparent border-t-primary shadow"></div>
               </div>
             </div>
           </div>

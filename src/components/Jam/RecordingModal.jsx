@@ -39,7 +39,7 @@ const MetronomeWaveform = ({
   }, [beatsPerMeasure, totalBeats, countInBeats]);
 
   return (
-    <div className="w-full h-16 bg-muted/40 rounded-md border border-border/50 relative overflow-hidden flex items-end px-1 py-1 gap-px cursor-pointer">
+    <div className="w-full h-12 sm:h-16 bg-muted/40 rounded-md border border-border/50 relative overflow-hidden flex items-end px-1 py-1 gap-px cursor-pointer">
       {beats.map((beat) => {
         const isActive = isPlaying && currentBeat === beat.id;
 
@@ -77,7 +77,6 @@ const CustomPreviewPlayer = ({
   activeRoom,
   syncOffset,
   setSyncOffset,
-  useAiClean,
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentBeat, setCurrentBeat] = useState(0);
@@ -219,27 +218,27 @@ const CustomPreviewPlayer = ({
   }, [currentBeat, isPlaying, totalBeatsToDisplay]);
 
   return (
-    <div className="w-full flex flex-col gap-3">
+    <div className="w-full flex flex-col gap-2 sm:gap-3">
       <div
         ref={scrollContainerRef}
-        className="w-full overflow-x-auto pb-4 pt-1 custom-scrollbar border border-border/50 rounded-xl bg-card shadow-inner"
+        className="w-full overflow-x-auto pb-3 sm:pb-4 pt-1 custom-scrollbar border border-border/50 rounded-xl bg-card shadow-inner"
       >
         <div
-          className="flex flex-col gap-5 relative px-3"
+          className="flex flex-col gap-3 sm:gap-5 relative px-2 sm:px-3"
           style={{
             width: `max(100%, ${totalBeatsToDisplay * PIXELS_PER_BEAT}px)`,
           }}
         >
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-xs text-muted-foreground font-mono uppercase tracking-wider pl-1">
+          <div className="flex flex-col gap-1 sm:gap-1.5 mt-1">
+            <Label className="text-[10px] sm:text-xs text-muted-foreground font-mono uppercase tracking-wider pl-1">
               Metronome (Chuẩn nhịp)
             </Label>
             <div className="relative">
-              <div className="absolute top-1 left-1 text-[9px] font-bold text-orange-500 bg-background/90 px-1.5 py-0.5 rounded shadow-sm uppercase tracking-wider z-20">
+              <div className="absolute top-1 left-1 text-[8px] sm:text-[9px] font-bold text-orange-500 bg-background/90 px-1 sm:px-1.5 py-0.5 rounded shadow-sm uppercase tracking-wider z-20">
                 Chuẩn bị
               </div>
               <div
-                className="absolute top-1 text-[9px] font-bold text-primary bg-background/90 px-1.5 py-0.5 rounded shadow-sm uppercase tracking-wider z-20"
+                className="absolute top-1 text-[8px] sm:text-[9px] font-bold text-primary bg-background/90 px-1 sm:px-1.5 py-0.5 rounded shadow-sm uppercase tracking-wider z-20"
                 style={{
                   left: `calc(${(countInBeats / totalBeatsToDisplay) * 100}% + 4px)`,
                 }}
@@ -255,11 +254,11 @@ const CustomPreviewPlayer = ({
             </div>
           </div>
 
-          <div className="flex flex-col gap-1.5 relative">
-            <Label className="text-xs text-muted-foreground font-mono uppercase tracking-wider pl-1">
+          <div className="flex flex-col gap-1 sm:gap-1.5 relative">
+            <Label className="text-[10px] sm:text-xs text-muted-foreground font-mono uppercase tracking-wider pl-1">
               Bản thu của bạn
             </Label>
-            <div className="w-full h-16 bg-muted/20 rounded-md border border-border relative overflow-hidden">
+            <div className="w-full h-12 sm:h-16 bg-muted/20 rounded-md border border-border relative overflow-hidden">
               {previewAudioUrl ? (
                 <div
                   className="absolute top-0 bottom-0 z-0 transition-all duration-100"
@@ -278,7 +277,7 @@ const CustomPreviewPlayer = ({
                   />
                 </div>
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground opacity-50">
+                <div className="absolute inset-0 flex items-center justify-center text-[10px] sm:text-xs text-muted-foreground opacity-50">
                   [ Đang xử lý sóng âm... ]
                 </div>
               )}
@@ -290,7 +289,7 @@ const CustomPreviewPlayer = ({
                     left: `calc(${(countInBeats / totalBeatsToDisplay) * 100}% + ${((currentBeat - countInBeats) / (totalBeatsToDisplay - countInBeats)) * (1 - countInBeats / totalBeatsToDisplay) * 100}%)`,
                   }}
                 >
-                  <div className="absolute -top-1 -left-1 w-2 h-2 rotate-45 bg-primary"></div>
+                  <div className="absolute -top-1 -left-1 w-1.5 sm:w-2 h-1.5 sm:h-2 rotate-45 bg-primary"></div>
                 </div>
               )}
             </div>
@@ -298,27 +297,27 @@ const CustomPreviewPlayer = ({
         </div>
       </div>
 
-      <div className="flex items-center gap-4 bg-background p-4 rounded-lg border border-border shadow-inner mt-2">
+      <div className="flex flex-row sm:flex-row items-center gap-3 sm:gap-4 bg-background p-3 sm:p-4 rounded-xl border border-border shadow-inner mt-1 sm:mt-2">
         <Button
           size="icon"
           variant={isPlaying ? "destructive" : "default"}
-          className="w-12 h-12 rounded-full flex-shrink-0 shadow-md"
+          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex-shrink-0 shadow-md"
           onClick={handlePlayPause}
         >
           {isPlaying ? (
-            <Pause className="w-5 h-5 fill-current" />
+            <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
           ) : (
-            <Play className="w-5 h-5 fill-current ml-1" />
+            <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-1" />
           )}
         </Button>
 
-        <div className="flex-1 flex flex-col gap-2">
-          <div className="flex justify-between items-center text-xs font-semibold px-1">
-            <span className="text-emerald-500">Sớm hơn (-500ms)</span>
-            <span className="text-primary font-mono text-sm bg-muted px-2 py-0.5 rounded">
+        <div className="flex-1 flex flex-col gap-1 sm:gap-2">
+          <div className="flex justify-between items-center text-[9px] sm:text-xs font-semibold px-1">
+            <span className="text-emerald-500">Sớm (-500)</span>
+            <span className="text-primary font-mono text-[10px] sm:text-sm bg-muted px-1.5 sm:px-2 py-0.5 rounded">
               {syncOffset > 0 ? `+${syncOffset}` : syncOffset} ms
             </span>
-            <span className="text-amber-500">Trễ hơn (+500ms)</span>
+            <span className="text-amber-500">Trễ (+500)</span>
           </div>
           <Slider
             value={[syncOffset]}
@@ -328,9 +327,8 @@ const CustomPreviewPlayer = ({
             onValueChange={(val) => setSyncOffset(val[0])}
             className="w-full"
           />
-          <p className="text-[10px] text-muted-foreground text-center italic">
-            *Kéo thanh trượt sao cho đỉnh sóng âm bản thu khớp với vạch
-            Metronome
+          <p className="hidden sm:block text-[10px] text-muted-foreground text-center italic mt-1">
+            *Kéo thanh trượt sao cho đỉnh sóng âm bản thu khớp với vạch Metronome
           </p>
         </div>
       </div>
@@ -349,8 +347,8 @@ export default function RecordingModal({
   const [countdownBeat, setCountDownBeat] = useState(0);
   const [previewAudioUrl, setPreviewAudioUrl] = useState(null);
   const [useAiClean, setUseAiClean] = useState(false);
-  const [isAiProcessing, setIsAiProcessing] = useState(false); // Trạng thái hiển thị Loading
-  const [rawAudioBlob, setRawAudioBlob] = useState(null); // Giữ file âm thanh gốc
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
+  const [rawAudioBlob, setRawAudioBlob] = useState(null); 
   const [cleanAudioBlob, setCleanAudioBlob] = useState(null);
   const [syncOffset, setSyncOffset] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -365,13 +363,11 @@ export default function RecordingModal({
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
-  // Auto-scroll refs
   const sheetContainerRef = useRef(null);
   const scrollAnimationRef = useRef(null);
   const lastScrollTime = useRef(0);
   const exactScrollTopRef = useRef(0);
 
-  // Auto-scroll effect during recording
   useEffect(() => {
     if (recordingStatus === "recording") {
       lastScrollTime.current = performance.now();
@@ -384,12 +380,10 @@ export default function RecordingModal({
         if (sheetContainerRef.current) {
           const currentScroll = sheetContainerRef.current.scrollTop;
 
-          // Sync with manual scroll
           if (Math.abs(currentScroll - exactScrollTopRef.current) > 2) {
             exactScrollTopRef.current = currentScroll;
           }
 
-          // Accumulate decimal for smooth scroll at low speeds
           exactScrollTopRef.current += 40 * autoScrollSpeed * dt;
           sheetContainerRef.current.scrollTop = exactScrollTopRef.current;
         }
@@ -410,7 +404,6 @@ export default function RecordingModal({
     };
   }, [recordingStatus, autoScrollSpeed]);
 
-  // THÊM LOGIC ĐỔI ĐUÔI PDF SANG JPG CHO CLOUDINARY
   const timeSignatureStr = activeRoom?.timeSignature || "4/4";
   const beatsPerMeasure = parseInt(timeSignatureStr.split("/")[0]) || 4;
 
@@ -442,12 +435,10 @@ export default function RecordingModal({
           type: "audio/webm",
         });
 
-        //Lưu file gốc và reset các state của AI
         setRawAudioBlob(audioBlob);
         setCleanAudioBlob(null);
         setUseAiClean(false);
 
-        //Load file gốc
         const audioUrl = URL.createObjectURL(audioBlob);
         setPreviewAudioUrl(audioUrl);
         setRecordingStatus("preview");
@@ -537,10 +528,8 @@ export default function RecordingModal({
   };
 
   const handleToggleAI = async () => {
-    // 1. Tắt AI
     if (useAiClean) {
       setUseAiClean(false);
-      // Nếu có file gốc thì load file gốc, nếu là bản nháp thì load lại link nháp
       if (rawAudioBlob) {
         setPreviewAudioUrl(URL.createObjectURL(rawAudioBlob));
       } else if (initialDraft) {
@@ -549,23 +538,20 @@ export default function RecordingModal({
       return;
     }
 
-    // 2. Bật AI: Lấy từ Cache nếu đã lọc rồi
     if (cleanAudioBlob) {
       setUseAiClean(true);
       setPreviewAudioUrl(URL.createObjectURL(cleanAudioBlob));
       return;
     }
 
-    // 3. XỬ LÝ FILE ĐẦU VÀO
     let currentAudioBlob = rawAudioBlob;
 
-    // NẾU LÀ BẢN NHÁP (Chưa có Blob vật lý): Tải file từ URL về trước
     if (!currentAudioBlob && initialDraft?.raw_audio_url) {
       setIsAiProcessing(true);
       try {
         const res = await fetch(initialDraft.raw_audio_url);
         currentAudioBlob = await res.blob();
-        setRawAudioBlob(currentAudioBlob); // Lưu lại Blob để dùng cho lần sau
+        setRawAudioBlob(currentAudioBlob); 
       } catch (error) {
         console.error("Lỗi khi tải file nháp:", error);
         alert("Không thể tải file nháp để xử lý AI. Vui lòng thử lại!");
@@ -576,7 +562,6 @@ export default function RecordingModal({
 
     if (!currentAudioBlob) return;
 
-    // 4. Bắn file sang Python để lọc
     setIsAiProcessing(true);
     try {
       const formData = new FormData();
@@ -620,7 +605,6 @@ export default function RecordingModal({
       let finalAudioUrl = null;
       let blobToSave = useAiClean ? cleanAudioBlob : rawAudioBlob;
 
-      // 1. NẾU CÓ FILE MỚI -> BẮN THẲNG LÊN CLOUDINARY
       if (blobToSave) {
         const formDataCloud = new FormData();
         const fileExtension = useAiClean ? "wav" : "webm";
@@ -632,7 +616,6 @@ export default function RecordingModal({
         formDataCloud.append("upload_preset", "jamsheet_preset");
         formDataCloud.append("folder", "jamroom_audio");
 
-        // Cloudinary dùng endpoint 'video' cho các file âm thanh (audio)
         const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/dfwrrelbq/video/upload`, {
           method: "POST",
           body: formDataCloud,
@@ -643,7 +626,6 @@ export default function RecordingModal({
         finalAudioUrl = cloudData.secure_url;
       }
 
-      // 2. GÓI DỮ LIỆU THÀNH JSON GỬI VỀ BACKEND
       const finalName = customTrackName.trim() || (saveTargetStatus === "published" ? `Take ${recordingTrack.instrument}` : "Bản nháp");
       
       const payload = {
@@ -654,7 +636,6 @@ export default function RecordingModal({
         use_ai_clean: useAiClean,
       };
       
-      // Nếu có URL âm thanh mới thì thêm vào JSON
       if (finalAudioUrl) {
         payload.raw_audio_url = finalAudioUrl;
       }
@@ -666,7 +647,6 @@ export default function RecordingModal({
         ? `${baseUrl}/api/jams/tracks/${draftId}`
         : `${baseUrl}/api/jams/${activeRoom.id}/tracks`;
 
-      // API Backend giờ đây chỉ nhận JSON siêu nhẹ
       const response = await fetch(url, {
         method: draftId ? "PUT" : "POST",
         headers: { 
@@ -718,23 +698,35 @@ export default function RecordingModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md flex animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
-      <div className="flex-1 border-r border-border p-4 flex flex-col h-full relative bg-muted/30">
+    <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md flex flex-col sm:flex-row animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+      
+      {/* NÚT ĐÓNG MODAL (MOBILE ĐỂ LÊN ĐẦU, BÊN PHẢI) */}
+      <Button
+        variant="secondary"
+        size="icon"
+        className="absolute top-4 right-4 rounded-full shadow-lg hover:bg-destructive/10 hover:text-destructive z-[60] bg-background/80 backdrop-blur-sm sm:hidden"
+        onClick={handleClose}
+      >
+        <X className="w-5 h-5" />
+      </Button>
+
+      {/* KHU VỰC NHẠC PHỔ */}
+      <div className="w-full h-[45vh] sm:h-full sm:flex-1 border-b sm:border-b-0 sm:border-r border-border p-2 sm:p-4 flex flex-col relative bg-muted/30">
         <div className="flex items-center justify-between mb-2 shrink-0">
-          <h3 className="font-bold text-lg flex items-center gap-2">
-            <FileText className="w-5 h-5 text-primary" /> Nhạc phổ
+          <h3 className="font-bold text-sm sm:text-lg flex items-center gap-1.5 sm:gap-2">
+            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-primary" /> Nhạc phổ
           </h3>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Label>Tốc độ cuộn:</Label>
+          <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-sm text-muted-foreground mr-10 sm:mr-0">
+            <Label className="text-[10px] sm:text-sm">Tốc độ cuộn:</Label>
             <Slider
               value={[autoScrollSpeed]}
               max={2}
               min={0.1}
               step={0.1}
               onValueChange={(val) => setAutoScrollSpeed(val[0])}
-              className="w-24 cursor-pointer"
+              className="w-16 sm:w-24 cursor-pointer"
             />
-            <span className="w-8 font-mono font-medium">
+            <span className="w-6 sm:w-8 font-mono font-medium">
               {autoScrollSpeed}x
             </span>
           </div>
@@ -743,10 +735,10 @@ export default function RecordingModal({
         <div className="flex-1 flex flex-col bg-white rounded-md shadow-inner border border-border/50 overflow-hidden relative">
           <div
             ref={sheetContainerRef}
-            className="flex-1 h-full bg-white rounded-md shadow-inner border border-border/50 overflow-y-auto custom-scrollbar relative p-4"
+            className="flex-1 h-full bg-white rounded-md shadow-inner border border-border/50 overflow-y-auto custom-scrollbar relative p-2 sm:p-4"
           >
             {activeRoom?.sheetUrls && activeRoom.sheetUrls.length > 0 ? (
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2 sm:gap-4">
                 {activeRoom.sheetUrls.map((url, index) => (
                   <img
                     key={index}
@@ -771,8 +763,8 @@ export default function RecordingModal({
                 />
               )
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground flex-col gap-2">
-                <FileText className="w-12 h-12 opacity-20" />
+              <div className="absolute inset-0 flex items-center justify-center text-[10px] sm:text-sm text-muted-foreground flex-col gap-2">
+                <FileText className="w-8 h-8 sm:w-12 sm:h-12 opacity-20" />
                 <span>Không tìm thấy dữ liệu nhạc phổ</span>
               </div>
             )}
@@ -780,19 +772,20 @@ export default function RecordingModal({
         </div>
       </div>
 
-      <div className="w-1/2 lg:w-2/5 p-6 flex flex-col h-full bg-card shadow-2xl relative overflow-y-auto custom-scrollbar">
+      {/* KHU VỰC ĐIỀU KHIỂN THU ÂM */}
+      <div className="w-full h-[55vh] sm:h-full sm:w-1/2 lg:w-2/5 p-4 sm:p-6 flex flex-col bg-card shadow-[0_-10px_40px_rgba(0,0,0,0.2)] sm:shadow-2xl relative overflow-y-auto custom-scrollbar rounded-t-2xl sm:rounded-none z-10">
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-4 right-4 rounded-full hover:bg-destructive/10 hover:text-destructive z-10"
+          className="hidden sm:flex absolute top-4 right-4 rounded-full hover:bg-destructive/10 hover:text-destructive z-10"
           onClick={handleClose}
         >
           <X className="w-5 h-5" />
         </Button>
 
-        <div className="mb-6 mt-2 shrink-0">
-          <h2 className="text-2xl font-bold">Phòng Thu</h2>
-          <p className="text-muted-foreground mt-1">
+        <div className="mb-4 sm:mb-6 mt-1 sm:mt-2 shrink-0">
+          <h2 className="text-xl sm:text-2xl font-bold">Phòng Thu</h2>
+          <p className="text-[11px] sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
             Đang thu cho kệ:{" "}
             <strong className="text-foreground">
               {recordingTrack.instrument}
@@ -801,12 +794,12 @@ export default function RecordingModal({
         </div>
 
         <div
-          className={`border rounded-xl p-6 flex flex-col items-center mb-6 flex-1 transition-colors duration-500 ${recordingStatus === "recording" ? "bg-red-500/10 border-red-500/50" : "bg-muted/40 border-border"}`}
+          className={`border rounded-xl p-3 sm:p-6 flex flex-col items-center mb-4 sm:mb-6 flex-1 transition-colors duration-500 overflow-y-auto custom-scrollbar ${recordingStatus === "recording" ? "bg-red-500/10 border-red-500/50" : "bg-muted/40 border-border"}`}
         >
           {recordingStatus === "preview" ? (
-            <div className="w-full flex flex-col items-center gap-6 flex-1">
-              <h3 className="text-xl font-bold text-primary flex items-center gap-2 shrink-0">
-                <Check className="w-6 h-6" /> Thu âm hoàn tất!
+            <div className="w-full flex flex-col items-center gap-4 sm:gap-6 flex-1 justify-center">
+              <h3 className="text-base sm:text-xl font-bold text-primary flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <Check className="w-5 h-5 sm:w-6 sm:h-6" /> Thu âm hoàn tất!
               </h3>
 
               <div className="w-full flex-1 flex items-center justify-center">
@@ -821,7 +814,7 @@ export default function RecordingModal({
 
               {(rawAudioBlob || initialDraft) && (
                 <div
-                  className={`flex items-center gap-3 bg-background p-3 rounded-lg border w-full max-w-sm shadow-sm transition-all shrink-0 ${
+                  className={`flex items-center gap-2.5 sm:gap-3 bg-background p-2 sm:p-3 rounded-lg border w-full max-w-sm shadow-sm transition-all shrink-0 ${
                     isAiProcessing
                       ? "border-primary/50 opacity-70 cursor-wait bg-primary/5"
                       : "border-border cursor-pointer hover:border-primary/50"
@@ -829,26 +822,26 @@ export default function RecordingModal({
                   onClick={() => !isAiProcessing && handleToggleAI()}
                 >
                   <div
-                    className={`w-5 h-5 rounded flex items-center justify-center border ${
+                    className={`w-4 h-4 sm:w-5 sm:h-5 rounded flex items-center justify-center border shrink-0 ${
                       useAiClean
                         ? "bg-primary border-primary text-primary-foreground"
                         : "border-muted-foreground"
                     }`}
                   >
                     {isAiProcessing ? (
-                      <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
+                      <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary animate-spin" />
                     ) : (
-                      useAiClean && <Check className="w-3.5 h-3.5" />
+                      useAiClean && <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     )}
                   </div>
-                  <div className="flex flex-col flex-1">
-                    <span className="text-sm font-bold flex items-center gap-1.5">
-                      <Sparkles className="w-4 h-4 text-emerald-500" />
+                  <div className="flex flex-col flex-1 overflow-hidden">
+                    <span className="text-[11px] sm:text-sm font-bold flex items-center gap-1 sm:gap-1.5 truncate">
+                      <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-500 shrink-0" />
                       {isAiProcessing
                         ? "AI đang dọn dẹp âm thanh..."
                         : "Dùng AI lọc tạp âm"}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-[9px] sm:text-xs text-muted-foreground truncate">
                       {isAiProcessing
                         ? "Vui lòng chờ khoảng 2-5 giây"
                         : "Loại bỏ tiếng ồn nền, tiếng quạt gió..."}
@@ -859,11 +852,11 @@ export default function RecordingModal({
             </div>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center">
-              <div className="text-center mb-6 h-32 flex flex-col justify-center">
-                <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-4">
+              <div className="text-center mb-4 sm:mb-6 h-24 sm:h-32 flex flex-col justify-center">
+                <p className="text-[10px] sm:text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-2 sm:mb-4">
                   Trạng thái Metronome
                 </p>
-                <div className="text-6xl font-black text-primary font-mono tracking-tighter">
+                <div className="text-4xl sm:text-6xl font-black text-primary font-mono tracking-tighter">
                   {recordingStatus === "idle" && "SẴN SÀNG"}
                   {recordingStatus === "counting" && (
                     <div className="flex flex-col items-center">
@@ -881,25 +874,24 @@ export default function RecordingModal({
                     </div>
                   )}
                   {recordingStatus === "recording" && (
-                    <span className="text-red-500 flex items-center gap-4 animate-pulse">
-                      <div className="w-6 h-6 rounded-full bg-red-500"></div>{" "}
+                    <span className="text-red-500 flex items-center gap-2 sm:gap-4 animate-pulse">
+                      <div className="w-4 h-4 sm:w-6 sm:h-6 rounded-full bg-red-500"></div>{" "}
                       ĐANG THU
                     </span>
                   )}
                 </div>
               </div>
 
-              <p className="text-muted-foreground font-medium text-center max-w-sm h-12">
+              <p className="text-muted-foreground font-medium text-center max-w-xs sm:max-w-sm h-10 sm:h-12 text-[10px] sm:text-sm px-4">
                 {recordingStatus === "idle" && (
                   <>
                     Nhịp độ là <strong>{activeRoom?.tempo} BPM</strong>. Hệ
-                    thống sẽ đếm <strong>2 ô nhịp</strong> chuẩn bị trước khi
-                    ghi âm.
+                    thống sẽ đếm <strong>2 ô nhịp</strong> trước khi ghi âm.
                   </>
                 )}
                 {recordingStatus === "counting" &&
                   countdownBeat > beatsPerMeasure && (
-                    <span className="text-foreground font-bold text-lg">
+                    <span className="text-foreground font-bold text-base sm:text-lg">
                       Vào vị trí...
                     </span>
                   )}
@@ -913,10 +905,10 @@ export default function RecordingModal({
           )}
         </div>
 
-        <div className="space-y-4 mt-auto shrink-0 relative">
+        <div className="space-y-3 sm:space-y-4 mt-auto shrink-0 relative">
           {isNameModalOpen && (
-            <div className="absolute inset-x-0 bottom-full mb-4 bg-card border border-border shadow-xl rounded-xl p-5 z-20 animate-in slide-in-from-bottom-4 duration-200">
-              <h4 className="font-bold mb-2 flex items-center gap-2 text-foreground">
+            <div className="absolute inset-x-0 bottom-full mb-3 sm:mb-4 bg-card border border-border shadow-2xl rounded-xl p-4 sm:p-5 z-20 animate-in slide-in-from-bottom-4 duration-200">
+              <h4 className="font-bold text-sm sm:text-base mb-2 flex items-center gap-2 text-foreground">
                 <FileText className="w-4 h-4 text-primary" />
                 Đặt tên cho{" "}
                 {saveTargetStatus === "published"
@@ -927,7 +919,7 @@ export default function RecordingModal({
                 type="text"
                 value={customTrackName}
                 onChange={(e) => setCustomTrackName(e.target.value)}
-                className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary mb-4"
+                className="w-full h-10 sm:h-12 bg-background border border-border rounded-lg px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-primary mb-3 sm:mb-4"
                 placeholder="VD: Guitar Solo (Take 2)..."
                 autoFocus
                 onKeyDown={(e) => e.key === "Enter" && executeSaveTrack()}
@@ -935,26 +927,27 @@ export default function RecordingModal({
               <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  className="flex-1"
+                  className="flex-1 h-10 sm:h-12 text-xs sm:text-sm rounded-lg"
                   onClick={() => setIsNameModalOpen(false)}
                 >
                   Hủy
                 </Button>
-                <Button className="flex-1" onClick={executeSaveTrack}>
+                <Button className="flex-1 h-10 sm:h-12 text-xs sm:text-sm rounded-lg" onClick={executeSaveTrack}>
                   Lưu ngay
                 </Button>
               </div>
             </div>
           )}
+          
           {recordingStatus === "preview" ? (
             <div
-              className={`flex flex-col gap-3 transition-opacity ${isNameModalOpen ? "opacity-30 pointer-events-none" : ""}`}
+              className={`flex flex-col gap-2.5 sm:gap-3 transition-opacity ${isNameModalOpen ? "opacity-30 pointer-events-none" : ""}`}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5 sm:gap-3">
                 <Button
                   size="lg"
                   variant="outline"
-                  className="flex-1 h-12 font-bold"
+                  className="flex-1 h-12 sm:h-12 font-bold text-xs sm:text-sm rounded-xl sm:rounded-md"
                   onClick={cancelPreview}
                 >
                   Thu lại
@@ -962,51 +955,49 @@ export default function RecordingModal({
                 <Button
                   size="lg"
                   variant="secondary"
-                  className="flex-1 h-12 font-bold bg-muted hover:bg-muted/80"
+                  className="flex-1 h-12 sm:h-12 font-bold bg-muted hover:bg-muted/80 text-xs sm:text-sm rounded-xl sm:rounded-md"
                   onClick={() => openNameModal("draft")}
                   disabled={isUploading}
                 >
-                  {isUploading && (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  )}{" "}
-                  {isUploading ? "Đang xử lý..." : "Lưu bản nháp"}
+                  {isUploading && <Loader2 className="w-4 h-4 mr-1.5 sm:mr-2 animate-spin" />}
+                  {isUploading ? "Đang xử lý..." : "Lưu nháp"}
                 </Button>
               </div>
               <Button
                 size="lg"
-                className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xl shadow-lg shadow-primary/20"
+                className="w-full h-12 sm:h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm sm:text-xl shadow-lg shadow-primary/20 rounded-xl sm:rounded-md"
                 onClick={() => openNameModal("published")}
                 disabled={isUploading}
               >
-                <UploadCloud className="w-6 h-6 mr-2" /> Xác nhận Nộp bản thu
+                <UploadCloud className="w-5 h-5 sm:w-6 sm:h-6 mr-1.5 sm:mr-2" /> Nộp bản thu
               </Button>
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2.5 sm:gap-4">
                 <Button
                   size="lg"
                   variant="outline"
-                  className="flex-1 h-14 font-semibold text-lg"
+                  className="flex-1 h-12 sm:h-14 font-semibold text-sm sm:text-lg rounded-xl sm:rounded-md"
                   onClick={handleClose}
                 >
-                  <Square className="w-5 h-5 mr-2" /> Hủy bỏ
+                  <Square className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" /> Hủy
                 </Button>
                 {recordingStatus === "idle" ? (
                   <Button
                     size="lg"
-                    className="flex-1 h-14 bg-red-500 hover:bg-red-600 text-white font-bold text-xl shadow-lg shadow-red-500/20"
+                    className="flex-1 h-12 sm:h-14 bg-red-500 hover:bg-red-600 text-white font-bold text-sm sm:text-xl shadow-lg shadow-red-500/20 rounded-xl sm:rounded-md"
                     onClick={startRecordingFlow}
                   >
-                    <Mic2 className="w-6 h-6 mr-2" /> Ghi Âm
+                    <Mic2 className="w-5 h-5 sm:w-6 sm:h-6 mr-1.5 sm:mr-2" /> Ghi Âm
                   </Button>
                 ) : (
                   <Button
                     size="lg"
-                    className="flex-1 h-14 bg-foreground hover:bg-foreground/90 text-background font-bold text-xl"
+                    className="flex-1 h-12 sm:h-14 bg-foreground hover:bg-foreground/90 text-background font-bold text-sm sm:text-xl rounded-xl sm:rounded-md"
                     onClick={stopRecordingFlow}
                   >
-                    <Square className="w-6 h-6 mr-2 fill-current" /> Dừng Thu
+                    <Square className="w-4 h-4 sm:w-6 sm:h-6 mr-1.5 sm:mr-2 fill-current" /> Dừng
                   </Button>
                 )}
               </div>
