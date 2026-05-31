@@ -4,11 +4,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import AuthHeader from "@/components/ui/auth-header";
 import AlertMessage from "@/components/ui/alert-message";
 import { getApiUrl, API_ENDPOINTS } from "@/lib/constants";
@@ -71,8 +67,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 sm:p-8">
+      <Card className="w-full max-w-[95%] sm:max-w-md rounded-2xl sm:rounded-xl shadow-2xl sm:shadow-lg border-border/50 sm:border-border my-8">
         <AuthHeader
           title="Tạo tài khoản mới"
           description="Bắt đầu hành trình sáng tạo âm nhạc của bạn"
@@ -81,7 +77,7 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <AlertMessage message={error} type="error" />
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="username">Tên hiển thị (Username)</Label>
               <Input
                 id="username"
@@ -90,9 +86,10 @@ export default function RegisterPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
+                className="h-12 sm:h-10 text-base sm:text-sm rounded-xl sm:rounded-md"
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -101,13 +98,14 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="h-12 sm:h-10 text-base sm:text-sm rounded-xl sm:rounded-md"
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="password">Mật khẩu</Label>
               <div className="relative w-full">
                 <Input
-                  className="pr-10"
+                  className="pr-12 h-12 sm:h-10 text-base sm:text-sm rounded-xl sm:rounded-md"
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Tạo mật khẩu (ít nhất 6 ký tự)"
@@ -117,22 +115,22 @@ export default function RegisterPage() {
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
+                    <EyeOff className="w-5 h-5 sm:w-4 sm:h-4" />
                   ) : (
-                    <Eye className="w-4 h-4" />
+                    <Eye className="w-5 h-5 sm:w-4 sm:h-4" />
                   )}
                 </button>
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="confirm-password">Xác nhận mật khẩu</Label>
               <div className="relative w-full">
                 <Input
-                  className="pr-10"
+                  className="pr-12 h-12 sm:h-10 text-base sm:text-sm rounded-xl sm:rounded-md"
                   id="confirm-password"
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Nhập lại mật khẩu"
@@ -142,20 +140,24 @@ export default function RegisterPage() {
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
                   {showConfirmPassword ? (
-                    <EyeOff className="w-4 h-4" />
+                    <EyeOff className="w-5 h-5 sm:w-4 sm:h-4" />
                   ) : (
-                    <Eye className="w-4 h-4" />
+                    <Eye className="w-5 h-5 sm:w-4 sm:h-4" />
                   )}
                 </button>
               </div>
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full" disabled={isLoading}>
+          <CardFooter className="flex flex-col space-y-4 pt-2">
+            <Button
+              type="submit"
+              className="w-full h-12 sm:h-10 text-base sm:text-sm font-semibold rounded-xl sm:rounded-md transition-all"
+              disabled={isLoading}
+            >
               {isLoading ? "Đang xử lý..." : "Đăng ký"}
             </Button>
             <div className="text-sm text-center text-muted-foreground">
