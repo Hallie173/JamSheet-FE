@@ -31,6 +31,11 @@ export default function SheetsLibrary() {
   const [editingSheetId, setEditingSheetId] = useState(null);
   const exploreRef = React.useRef(null);
 
+  // --- PAGINATION STATES ---
+  const [mySheetsPage, setMySheetsPage] = useState(1);
+  const [exploreSheetsPage, setExploreSheetsPage] = useState(1);
+  const ITEMS_PER_PAGE = 6;
+
   const [editFormData, setEditFormData] = useState({
     title: "",
     composer: "",
@@ -85,7 +90,7 @@ export default function SheetsLibrary() {
     liked_by: sheet.liked_by || [],
   });
 
-  const fetchExploreSheets = async () => {
+const fetchExploreSheets = async () => {
     try {
       const params = new URLSearchParams(window.location.search);
       const queryString = params.toString();
@@ -99,6 +104,7 @@ export default function SheetsLibrary() {
       const data = await res.json();
       if (res.ok) {
         setExploreSheets(data.map(formatSheetData));
+        setExploreSheetsPage(1); // Reset page khi fetch mới
 
         if (queryString) {
           setTimeout(() => {
@@ -382,6 +388,38 @@ export default function SheetsLibrary() {
     }
   };
 
+  // --- HELPER COMPONENT PHÂN TRANG ---
+  const PaginationControls = ({ currentPage, setPage, totalItems }) => {
+    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="flex justify-center items-center gap-3 mt-6">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 w-9 p-0 rounded-full"
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={currentPage === 1}
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
+        <span className="text-xs sm:text-sm font-medium text-muted-foreground">
+          Trang {currentPage} / {totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 w-9 p-0 rounded-full"
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          disabled={currentPage === totalPages}
+        >
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+    );
+  };
+
   // Component tái sử dụng cho giao diện Thẻ Nhạc Phổ (Card)
   const renderSheetCard = (sheet, isMySheet) => {
     const isLiked = sheet.liked_by.includes(currentUserId);
@@ -399,124 +437,109 @@ export default function SheetsLibrary() {
     return (
       <Card
         key={sheet.id}
-        className="p-0 relative hover:border-primary/50 transition-colors cursor-pointer flex flex-col overflow-hidden group shadow-sm bg-card h-full"
+        className="p-0 relative hover:border-primary/50 transition-colors cursor-pointer flex flex-col overflow-hidden group shadow-sm bg-card h-full rounded-xl"
         onClick={() => {
           if (editingSheetId !== sheet.id) {
             setSelectedSheet(sheet);
           }
         }}
       >
-        {/* ===================== CÁC NÚT HOVER ===================== */}
-        {isMySheet && editingSheetId !== sheet.id && (
-          <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+        {/* ===================== CÁC NÚT THAO TÁC (Chống Hover lỗi trên Mobile) ===================== */}
+        {/* NÚT TẠO / ĐẾN JAM */}
+        <div className="absolute top-2 left-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 z-10">
+          {isMySheet && editingSheetId !== sheet.id ? (
             <Button
               size="sm"
-              className="gap-2 h-10 px-6 shadow-lg shadow-primary/25 rounded-lg"
+              className="gap-1 sm:gap-2 h-7 sm:h-9 px-2 sm:px-4 shadow-lg shadow-primary/25 rounded-md"
               onClick={(e) => handleJamNow(e, sheet)}
             >
-              <PlayCircle className="w-4 h-4" /> Tạo phòng Jam
+              <PlayCircle className="w-3.5 h-3.5" /> 
+              <span className="text-[10px] sm:text-sm font-semibold">Tạo Jam</span>
             </Button>
-          </div>
-        )}
+          ) : (
+            !isMySheet && (
+              <Button
+                size="sm"
+                variant="secondary"
+                className="gap-1 sm:gap-2 h-7 sm:h-9 px-2 sm:px-4 shadow-lg bg-background/90 hover:bg-background backdrop-blur-sm rounded-md border border-border"
+                onClick={(e) => handleJoinJam(e, sheet.id)}
+              >
+                <Users className="w-3.5 h-3.5 text-emerald-500" /> 
+                <span className="text-[10px] sm:text-sm font-semibold">Đến phòng</span>
+              </Button>
+            )
+          )}
+        </div>
 
-        {!isMySheet && (
-          <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-            <Button
-              size="sm"
-              variant="secondary"
-              className="gap-2 h-10 px-6 shadow-lg bg-background/90 hover:bg-background backdrop-blur-sm rounded-lg border border-border"
-              onClick={(e) => handleJoinJam(e, sheet.id)}
-            >
-              <Users className="w-4 h-4 text-emerald-500" /> Đến phòng Jam
-            </Button>
-          </div>
-        )}
-
+        {/* CỤM NÚT SỬA/TẢI/XÓA (My Sheets) */}
         {isMySheet && editingSheetId !== sheet.id && (
-          <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+          <div className="absolute top-2 right-2 flex flex-col gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 z-10">
             <Button
               variant="secondary"
               size="icon"
-              className="h-8 w-8 bg-background/90 hover:bg-background shadow-md backdrop-blur-sm"
+              className="h-7 w-7 sm:h-8 sm:w-8 bg-background/90 hover:bg-background shadow-md backdrop-blur-sm rounded-md"
               onClick={(e) => startEdit(e, sheet)}
             >
-              <Edit className="w-4 h-4 text-primary" />
+              <Edit className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
             </Button>
             <Button
               variant="secondary"
               size="icon"
-              className="h-8 w-8 bg-background/90 hover:bg-background shadow-md backdrop-blur-sm"
+              className="h-7 w-7 sm:h-8 sm:w-8 bg-background/90 hover:bg-background shadow-md backdrop-blur-sm rounded-md"
               onClick={(e) => handleDownload(e, sheet)}
             >
-              <Download className="w-4 h-4 text-emerald-500" />
+              <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />
             </Button>
             <Button
               variant="secondary"
               size="icon"
-              className="h-8 w-8 bg-background/90 hover:bg-background shadow-md backdrop-blur-sm hover:text-destructive"
+              className="h-7 w-7 sm:h-8 sm:w-8 bg-background/90 hover:bg-background shadow-md backdrop-blur-sm hover:text-destructive rounded-md text-muted-foreground"
               onClick={(e) => handleDelete(e, sheet.id)}
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </Button>
           </div>
         )}
 
-        {/* ===================== FORM CHỈNH SỬA (OVERLAY LÊN TRÊN) ===================== */}
+        {/* ===================== FORM CHỈNH SỬA ===================== */}
         {isMySheet && editingSheetId === sheet.id && (
           <div
-            className="p-4 flex flex-col gap-3 h-full bg-background absolute inset-0 z-20 overflow-y-auto"
+            className="p-3 sm:p-4 flex flex-col gap-2.5 h-full bg-background absolute inset-0 z-20 overflow-y-auto custom-scrollbar"
             onClick={(e) => e.stopPropagation()}
           >
-            <h4 className="font-bold text-sm border-b pb-1 flex items-center gap-2">
-              <Edit className="w-4 h-4 text-primary" /> Sửa nhạc phổ
+            <h4 className="font-bold text-xs sm:text-sm border-b pb-1 flex items-center gap-2">
+              <Edit className="w-3.5 h-3.5 text-primary" /> Sửa nhạc phổ
             </h4>
             <div className="space-y-1">
-              <Label className="text-xs">Tên nhạc phổ *</Label>
+              <Label className="text-[10px] sm:text-xs">Tên nhạc phổ *</Label>
               <Input
                 size="sm"
-                className="h-8 text-xs"
+                className="h-7 sm:h-8 text-[10px] sm:text-xs"
                 value={editFormData.title}
                 onChange={(e) =>
                   setEditFormData({ ...editFormData, title: e.target.value })
                 }
               />
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs">Nhạc sĩ (Composer)</Label>
-                <Input
-                  size="sm"
-                  className="h-8 text-xs"
-                  value={editFormData.composer}
-                  onChange={(e) =>
-                    setEditFormData({
-                      ...editFormData,
-                      composer: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Nhịp *</Label>
-                <Input
-                  size="sm"
-                  className="h-8 text-xs"
-                  required
-                  value={editFormData.time_signature}
-                  onChange={(e) =>
-                    setEditFormData({
-                      ...editFormData,
-                      time_signature: e.target.value,
-                    })
-                  }
-                />
-              </div>
-            </div>
             <div className="space-y-1">
-              <Label className="text-xs">Nhạc cụ *</Label>
+              <Label className="text-[10px] sm:text-xs">Nhạc sĩ</Label>
               <Input
                 size="sm"
-                className="h-8 text-xs"
+                className="h-7 sm:h-8 text-[10px] sm:text-xs"
+                value={editFormData.composer}
+                onChange={(e) =>
+                  setEditFormData({
+                    ...editFormData,
+                    composer: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px] sm:text-xs">Nhạc cụ *</Label>
+              <Input
+                size="sm"
+                className="h-7 sm:h-8 text-[10px] sm:text-xs"
                 required
                 value={editFormData.instrument_tags}
                 onChange={(e) =>
@@ -527,36 +550,10 @@ export default function SheetsLibrary() {
                 }
               />
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs">Thể loại</Label>
-                <Input
-                  size="sm"
-                  className="h-8 text-xs"
-                  value={editFormData.genre}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, genre: e.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Tempo (BPM) *</Label>
-                <Input
-                  size="sm"
-                  type="number"
-                  required
-                  className="h-8 text-xs"
-                  value={editFormData.tempo}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, tempo: e.target.value })
-                  }
-                />
-              </div>
-            </div>
             <div className="flex items-center gap-2 mt-auto pt-2">
               <Button
                 size="sm"
-                className="flex-1 h-8 text-xs"
+                className="flex-1 h-7 sm:h-8 text-[10px] sm:text-xs"
                 onClick={(e) => handleSaveEdit(e, sheet.id)}
               >
                 Lưu
@@ -564,7 +561,7 @@ export default function SheetsLibrary() {
               <Button
                 size="sm"
                 variant="outline"
-                className="flex-1 h-8 text-xs"
+                className="flex-1 h-7 sm:h-8 text-[10px] sm:text-xs"
                 onClick={(e) => {
                   e.stopPropagation();
                   setEditingSheetId(null);
@@ -576,10 +573,10 @@ export default function SheetsLibrary() {
           </div>
         )}
 
-        {/* ===================== NỘI DUNG CARD (LUÔN RENDER ĐỂ GIỮ KHUNG KHÔNG BỊ XẸP) ===================== */}
+        {/* ===================== NỘI DUNG CARD ===================== */}
         <div className="aspect-[4/5] w-full bg-white dark:bg-white relative border-b border-border/50 overflow-hidden flex items-center justify-center">
           {isPdf && !isCloudinary ? (
-            <FileText className="w-16 h-16 text-muted-foreground/50 group-hover:scale-110 transition-transform" />
+            <FileText className="w-12 h-12 sm:w-16 sm:h-16 text-muted-foreground/50 group-hover:scale-110 transition-transform" />
           ) : (
             <img
               src={
@@ -596,8 +593,8 @@ export default function SheetsLibrary() {
           )}
 
           {isPdf && (
-            <div className="absolute top-2 right-2 bg-black/60 backdrop-blur text-white text-[10px] px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1 border border-white/10">
-              <FileText className="w-3 h-3" /> PDF
+            <div className="absolute top-2 right-2 bg-black/60 backdrop-blur text-white text-[9px] px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1 border border-white/10">
+              <FileText className="w-2.5 h-2.5" /> PDF
             </div>
           )}
 
@@ -605,7 +602,7 @@ export default function SheetsLibrary() {
             {sheet.instrument_tags.map((tag) => (
               <span
                 key={tag}
-                className="text-[10px] font-medium bg-black/70 text-white px-2 py-0.5 rounded-sm backdrop-blur-md border border-white/10"
+                className="text-[9px] sm:text-[10px] font-medium bg-black/70 text-white px-1.5 py-0.5 rounded-sm backdrop-blur-md border border-white/10 truncate max-w-[80px] sm:max-w-none"
               >
                 {tag}
               </span>
@@ -613,37 +610,37 @@ export default function SheetsLibrary() {
           </div>
         </div>
         
-        <CardHeader className="p-3 pb-0 shrink-0">
+        <CardHeader className="p-2 sm:p-3 pb-0 shrink-0">
           <h3
-            className="text-base font-bold leading-tight truncate"
+            className="text-sm sm:text-base font-bold leading-tight truncate"
             title={sheet.title}
           >
             {sheet.title}
           </h3>
           <div className="flex justify-between items-center mt-1">
-            <p className="text-xs text-muted-foreground truncate flex-1">
+            <p className="text-[10px] sm:text-xs text-muted-foreground truncate flex-1 pr-1">
               {sheet.composer}
             </p>
-            <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+            <span className="text-[9px] sm:text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground shrink-0">
               {sheet.tempo} BPM
             </span>
           </div>
         </CardHeader>
 
-        <CardFooter className="p-3 pt-2 shrink-0 flex items-center justify-between text-muted-foreground border-t border-border/50 mt-auto">
+        <CardFooter className="p-2 sm:p-3 pt-2 shrink-0 flex items-center justify-between text-muted-foreground border-t border-border/50 mt-auto">
           <div
-            className="flex items-center gap-1.5 text-xs cursor-pointer group/like p-1 -ml-1 rounded-md hover:bg-destructive/10 transition-colors"
+            className="flex items-center gap-1 text-[10px] sm:text-xs cursor-pointer group/like p-1 -ml-1 rounded-md hover:bg-destructive/10 transition-colors"
             onClick={(e) => handleToggleLike(e, sheet.id)}
           >
             <Heart
-              className={`w-4 h-4 transition-colors ${isLiked ? "fill-destructive text-destructive" : "group-hover/like:text-destructive"}`}
+              className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors ${isLiked ? "fill-destructive text-destructive" : "group-hover/like:text-destructive"}`}
             />
             <span className={isLiked ? "text-destructive font-medium" : ""}>
               {likeCount}
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 text-xs">
+          <div className="flex items-center gap-1 text-[10px] sm:text-xs">
             <Users className="w-3.5 h-3.5" />{" "}
             <span>{sheet.contributors_count}</span>
           </div>
@@ -652,20 +649,31 @@ export default function SheetsLibrary() {
     );
   };
 
+  // Tính toán dữ liệu cắt theo trang
+  const paginatedMySheets = mySheets.slice(
+    (mySheetsPage - 1) * ITEMS_PER_PAGE,
+    mySheetsPage * ITEMS_PER_PAGE
+  );
+
+  const paginatedExploreSheets = exploreSheets.slice(
+    (exploreSheetsPage - 1) * ITEMS_PER_PAGE,
+    exploreSheetsPage * ITEMS_PER_PAGE
+  );
+
   return (
-    <div className="flex flex-col h-full space-y-8 relative pb-32 mb-8">
+    <div className="flex flex-col h-full space-y-6 sm:space-y-8 relative px-4 sm:px-8 pb-32 mb-8 mt-4 sm:mt-0">
       {/* HEADER */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
             Thư viện Nhạc phổ
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
             Quản lý và chia sẻ các bản nhạc của bạn
           </p>
         </div>
         <Button
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 w-full sm:w-auto h-12 sm:h-10 rounded-xl sm:rounded-md font-semibold"
           onClick={() =>
             isLoggedIn
               ? setIsUploadModalOpen(true)
@@ -679,54 +687,77 @@ export default function SheetsLibrary() {
 
       {/* KHU VỰC DỮ LIỆU CÁ NHÂN (MY SHEETS) */}
       <div className="space-y-4">
-        <h2 className="text-xl font-bold border-b border-border pb-2">
+        <h2 className="text-lg sm:text-xl font-bold border-b border-border pb-2">
           Nhạc phổ của tôi
         </h2>
         {!isLoggedIn ? (
-          <div className="bg-card border border-border rounded-xl p-12 text-center shadow-sm">
+          <div className="bg-card border border-border rounded-2xl sm:rounded-xl p-8 sm:p-12 text-center shadow-sm">
             <Users className="w-8 h-8 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">
+            <h3 className="text-lg sm:text-xl font-semibold mb-2">
               Tham gia cộng đồng JamSheet
             </h3>
-            <p className="text-muted-foreground max-w-sm mx-auto mb-6">
+            <p className="text-sm sm:text-base text-muted-foreground max-w-sm mx-auto mb-6">
               Đăng nhập để lưu trữ và chia sẻ nhạc phổ của riêng bạn.
             </p>
-            <Button onClick={() => (window.location.href = "/login")}>
+            <Button className="h-12 sm:h-10 rounded-xl sm:rounded-md px-6" onClick={() => (window.location.href = "/login")}>
               Đăng nhập ngay
             </Button>
           </div>
         ) : mySheets.length === 0 ? (
-          <div className="bg-card border border-border rounded-xl p-12 text-center shadow-sm">
+          <div className="bg-card border border-border rounded-2xl sm:rounded-xl p-8 sm:p-12 text-center shadow-sm">
             <FileText className="w-8 h-8 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">
+            <h3 className="text-lg sm:text-xl font-semibold mb-2">
               Bạn chưa đăng bản nhạc nào.
             </h3>
-            <p className="text-muted-foreground max-w-sm mx-auto mb-6">
+            <p className="text-sm sm:text-base text-muted-foreground max-w-sm mx-auto mb-6">
               Hãy chia sẻ nhạc phổ của bạn để cộng đồng cùng hợp tấu.
             </p>
             <Button
               variant="outline"
+              className="h-12 sm:h-10 rounded-xl sm:rounded-md px-6"
               onClick={() => setIsUploadModalOpen(true)}
             >
               <UploadCloud className="w-4 h-4 mr-2" /> Tải lên ngay
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {mySheets.map((sheet) => renderSheetCard(sheet, true))}
-          </div>
+          <>
+            {/* ĐÃ SỬA: grid-cols-2 mặc định cho Mobile */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+              {paginatedMySheets.map((sheet) => renderSheetCard(sheet, true))}
+            </div>
+            <PaginationControls
+              currentPage={mySheetsPage}
+              setPage={setMySheetsPage}
+              totalItems={mySheets.length}
+            />
+          </>
         )}
       </div>
 
       {/* KHU VỰC CỘNG ĐỒNG */}
-      <div ref={exploreRef} className="space-y-4 pt-6">
+      <div ref={exploreRef} className="space-y-4 pt-4 sm:pt-6">
         <div className="flex items-center gap-2">
           <Search className="w-5 h-5 text-primary" />
-          <h2 className="text-2xl font-bold">Khám phá Cộng đồng</h2>
+          <h2 className="text-lg sm:text-2xl font-bold">Khám phá Cộng đồng</h2>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {exploreSheets.map((sheet) => renderSheetCard(sheet, false))}
-        </div>
+        
+        {exploreSheets.length === 0 ? (
+           <div className="text-center py-10 text-muted-foreground text-sm">
+             Không tìm thấy nhạc phổ nào phù hợp.
+           </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+              {paginatedExploreSheets.map((sheet) => renderSheetCard(sheet, false))}
+            </div>
+            <PaginationControls
+              currentPage={exploreSheetsPage}
+              setPage={setExploreSheetsPage}
+              totalItems={exploreSheets.length}
+            />
+          </>
+        )}
       </div>
 
       {/* MODAL UPLOAD */}

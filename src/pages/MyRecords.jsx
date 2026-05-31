@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Mic2, Heart, Disc, PlusCircle, Sparkles, Loader2, Trash2 } from "lucide-react";
+import {
+  Mic2,
+  Heart,
+  Disc,
+  PlusCircle,
+  Sparkles,
+  Loader2,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getApiUrl, API_ENDPOINTS } from "@/lib/constants";
 
@@ -14,12 +24,17 @@ export default function MyRecords() {
   const [exploreRecords, setExploreRecords] = useState([]);
   const [isLoadingExplore, setIsLoadingExplore] = useState(false);
 
+  // --- PAGINATION STATES ---
+  const [myRecordsPage, setMyRecordsPage] = useState(1);
+  const [exploreRecordsPage, setExploreRecordsPage] = useState(1);
+  const ITEMS_PER_PAGE = 6; // Tối đa 6 item (3 dòng x 2 cột) trên mobile
+
   // Fetch dữ liệu khi vào trang
   useEffect(() => {
     if (isLoggedIn) {
       fetchMyRecords();
     }
-    fetchExploreRecords(); // Gọi API lấy top bản thu (public)
+    fetchExploreRecords();
   }, [isLoggedIn]);
 
   const fetchMyRecords = async () => {
@@ -33,6 +48,7 @@ export default function MyRecords() {
       if (response.ok) {
         const data = await response.json();
         setMyRecords(data);
+        setMyRecordsPage(1);
       }
     } catch (error) {
       console.error("Lỗi tải bản thu của tôi:", error);
@@ -48,6 +64,7 @@ export default function MyRecords() {
       if (response.ok) {
         const data = await response.json();
         setExploreRecords(data);
+        setExploreRecordsPage(1);
       }
     } catch (error) {
       console.error("Lỗi tải top bản thu khám phá:", error);
@@ -72,10 +89,13 @@ export default function MyRecords() {
     if (window.confirm("Bạn có chắc chắn muốn xóa bản thu này?")) {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(getApiUrl(API_ENDPOINTS.JAMS_TRACK_DELETE(trackId)), {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch(
+          getApiUrl(API_ENDPOINTS.JAMS_TRACK_DELETE(trackId)),
+          {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
         if (!res.ok) throw new Error("Lỗi server");
         setMyRecords(myRecords.filter((record) => record._id !== trackId));
       } catch (error) {
@@ -84,74 +104,135 @@ export default function MyRecords() {
     }
   };
 
+  // --- HELPER COMPONENT PHÂN TRANG ---
+  const PaginationControls = ({ currentPage, setPage, totalItems }) => {
+    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="flex justify-center items-center gap-3 mt-6">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 w-9 p-0 rounded-full"
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={currentPage === 1}
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
+        <span className="text-xs sm:text-sm font-medium text-muted-foreground">
+          Trang {currentPage} / {totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 w-9 p-0 rounded-full"
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          disabled={currentPage === totalPages}
+        >
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+    );
+  };
+
+  // Tính toán dữ liệu cắt theo trang
+  const paginatedMyRecords = myRecords.slice(
+    (myRecordsPage - 1) * ITEMS_PER_PAGE,
+    myRecordsPage * ITEMS_PER_PAGE,
+  );
+
+  const paginatedExploreRecords = exploreRecords.slice(
+    (exploreRecordsPage - 1) * ITEMS_PER_PAGE,
+    exploreRecordsPage * ITEMS_PER_PAGE,
+  );
+
   return (
-    <div className="flex flex-col h-full space-y-8 pb-32 mb-8">
+    <div className="flex flex-col h-full space-y-6 sm:space-y-8 relative px-4 sm:px-8 pb-32 mb-8 mt-4 sm:mt-0">
       {/* Header Trang */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Bản thu của tôi</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            Bản thu của tôi
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
+            Nơi lưu giữ các tác phẩm và bản nháp
+          </p>
         </div>
       </div>
 
       {/* Khu vực Dữ liệu cá nhân */}
       <div
-        className={`bg-card border border-border rounded-xl flex flex-col items-center justify-center shadow-sm ${myRecords.length === 0 ? "p-12 text-center" : "p-6"}`}
+        className={`bg-card border border-border rounded-2xl sm:rounded-xl flex flex-col justify-center shadow-sm ${myRecords.length === 0 ? "p-8 sm:p-12 text-center items-center" : "p-4 sm:p-6"}`}
       >
         {isLoadingMyRecords ? (
           <div className="flex flex-col items-center py-10">
             <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-            <p className="text-muted-foreground">Đang tải bản thu của bạn...</p>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              Đang tải bản thu của bạn...
+            </p>
           </div>
         ) : !isLoggedIn ? (
-          <>
-            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-              <Mic2 className="w-8 h-8 text-primary" />
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+              <Mic2 className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">
+            <h3 className="text-lg sm:text-xl font-semibold mb-2">
               Bắt đầu hành trình âm nhạc
             </h3>
-            <p className="text-muted-foreground max-w-sm mb-6">
+            <p className="text-sm sm:text-base text-muted-foreground max-w-sm mb-6">
               Trở thành một phần của cộng đồng nhạc công không giới hạn. Đăng
               nhập để lưu trữ các bản thu và tham gia hợp tấu ngay hôm nay.
             </p>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4 w-full justify-center">
               <a href="/login">
-                <Button>Đăng nhập</Button>
+                <Button className="h-10 sm:h-10 px-6 rounded-xl sm:rounded-md">
+                  Đăng nhập
+                </Button>
               </a>
-              <a href="/signup">
-                <Button variant="outline">Đăng ký</Button>
+              <a href="/register">
+                <Button
+                  variant="outline"
+                  className="h-10 sm:h-10 px-6 rounded-xl sm:rounded-md"
+                >
+                  Đăng ký
+                </Button>
               </a>
             </div>
-          </>
+          </div>
         ) : myRecords.length === 0 ? (
-          <>
-            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-              <Mic2 className="w-8 h-8 text-muted-foreground" />
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+              <Mic2 className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">
+            <h3 className="text-lg sm:text-xl font-semibold mb-2">
               Bạn chưa có bản thu âm nào.
             </h3>
-            <p className="text-muted-foreground max-w-sm mb-6">
+            <p className="text-sm sm:text-base text-muted-foreground max-w-sm mb-6">
               Hãy tìm một phòng Hợp tấu đang thiếu nhạc cụ của bạn và bắt đầu
               thu âm ngay.
             </p>
             <a href="/">
-              <Button variant="default" className="flex items-center gap-2">
+              <Button
+                variant="default"
+                className="flex items-center gap-2 h-12 sm:h-10 rounded-xl sm:rounded-md px-6"
+              >
                 <PlusCircle className="w-4 h-4" /> Tìm phòng Jam
               </Button>
             </a>
-          </>
+          </div>
         ) : (
           <div className="w-full text-left">
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {myRecords.map((record) => (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+              {paginatedMyRecords.map((record) => (
                 <div
                   key={record._id}
-                  className="group relative flex flex-col cursor-pointer border border-border rounded-xl overflow-hidden hover:border-primary/50 transition-colors bg-background shadow-sm hover:shadow-md"
+                  className="group relative flex flex-col cursor-pointer border border-border rounded-xl sm:rounded-xl overflow-hidden hover:border-primary/50 transition-colors bg-background shadow-sm hover:shadow-md"
                   onClick={() => {
-                    // Thêm bảo vệ: Nếu phòng Jam chứa bản thu đã bị xóa hoàn toàn khỏi Database
                     if (!record.project_id) {
-                      alert("Phòng Jam chứa bản thu này đã bị xóa hoàn toàn khỏi hệ thống!");
+                      alert(
+                        "Phòng Jam chứa bản thu này đã bị xóa hoàn toàn khỏi hệ thống!",
+                      );
                       return;
                     }
                     if (record.status === "draft") {
@@ -161,55 +242,55 @@ export default function MyRecords() {
                     }
                   }}
                 >
-                  {/* NÚT XÓA */}
-                  <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                  {/* NÚT XÓA: Trên điện thoại sẽ hiện luôn (opacity-100), máy tính thì chờ hover */}
+                  <div className="absolute top-2 left-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 z-10">
                     <Button
                       variant="secondary"
                       size="icon"
-                      className="h-8 w-8 bg-background/90 hover:bg-background shadow-md backdrop-blur-sm hover:text-destructive"
+                      className="h-7 w-7 sm:h-8 sm:w-8 bg-background/90 hover:bg-background shadow-md backdrop-blur-sm hover:text-destructive rounded-md"
                       onClick={(e) => handleDelete(e, record._id)}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground group-hover:text-destructive" />
                     </Button>
                   </div>
 
                   {/* TAG BẢN NHÁP GÓC TRÊN */}
                   {record.status === "draft" && (
-                    <div className="absolute top-2 right-2 bg-amber-500 text-white text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-md z-10 shadow-sm backdrop-blur-sm">
+                    <div className="absolute top-2 right-2 bg-amber-500 text-white text-[9px] sm:text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 sm:px-2 sm:py-1 rounded sm:rounded-md z-10 shadow-sm backdrop-blur-sm">
                       Bản nháp
                     </div>
                   )}
 
                   <div className="aspect-square bg-muted/20 flex items-center justify-center group-hover:bg-muted/40 transition-colors relative">
                     <Disc
-                      className={`w-24 h-24 sm:w-32 sm:h-32 transition-colors duration-300 ${record.status === "draft" ? "text-muted-foreground/40 group-hover:text-amber-500/60" : "text-muted-foreground group-hover:text-primary"}`}
+                      className={`w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 transition-colors duration-300 ${record.status === "draft" ? "text-muted-foreground/40 group-hover:text-amber-500/60" : "text-muted-foreground group-hover:text-primary"}`}
                     />
                   </div>
 
-                  <div className="p-4 flex flex-col flex-1 border-t border-border/50">
+                  <div className="p-3 sm:p-4 flex flex-col flex-1 border-t border-border/50">
                     <h3
-                      className="font-bold text-sm truncate"
+                      className="font-bold text-xs sm:text-sm truncate"
                       title={record.name}
                     >
                       {record.name}
                     </h3>
                     <p
-                      className="text-xs text-muted-foreground truncate mt-1"
+                      className="text-[10px] sm:text-xs text-muted-foreground truncate mt-0.5 sm:mt-1"
                       title={record.project_id?.title}
                     >
                       {record.project_id?.title || "Dự án không xác định"}
                     </p>
 
-                    <div className="mt-auto pt-3 flex items-center justify-between">
+                    <div className="mt-auto pt-2 sm:pt-3 flex items-center justify-between">
                       <span
-                        className={`text-[10px] uppercase tracking-wider font-semibold px-2 py-1 rounded-md ${record.status === "draft" ? "bg-amber-500/10 text-amber-600" : "bg-secondary text-secondary-foreground"}`}
+                        className={`text-[9px] sm:text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-sm sm:rounded-md max-w-[60px] sm:max-w-none truncate ${record.status === "draft" ? "bg-amber-500/10 text-amber-600" : "bg-secondary text-secondary-foreground"}`}
                       >
                         {record.instrument}
                       </span>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-muted-foreground shrink-0">
                         <span>{formatDuration(record.duration)}</span>
                         <div className="flex items-center gap-1">
-                          <Heart className="w-3.5 h-3.5 text-destructive" />
+                          <Heart className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-destructive" />
                           <span>
                             {record.liked_by?.length || record.likes_count || 0}
                           </span>
@@ -220,17 +301,24 @@ export default function MyRecords() {
                 </div>
               ))}
             </div>
+
+            {/* Phân trang Bản thu của tôi */}
+            <PaginationControls
+              currentPage={myRecordsPage}
+              setPage={setMyRecordsPage}
+              totalItems={myRecords.length}
+            />
           </div>
         )}
       </div>
 
       {/* Khu vực Khám phá cộng đồng */}
-      <div className="space-y-4 pt-4">
+      <div className="space-y-4 pt-2 sm:pt-4">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-primary" />
-          <h2 className="text-2xl font-bold">Khám phá Bản thu xuất sắc</h2>
+          <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+          <h2 className="text-xl sm:text-2xl font-bold">Khám phá Cộng đồng</h2>
         </div>
-        <p className="text-muted-foreground">
+        <p className="text-sm sm:text-base text-muted-foreground">
           Xem bản thu được yêu thích do cộng đồng đóng góp
         </p>
 
@@ -239,62 +327,73 @@ export default function MyRecords() {
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : exploreRecords.length === 0 ? (
-          <div className="text-center p-8 bg-muted/20 border border-border border-dashed rounded-xl text-muted-foreground">
+          <div className="text-center p-8 bg-muted/20 border border-border border-dashed rounded-2xl sm:rounded-xl text-muted-foreground text-sm sm:text-base">
             Hiện chưa có bản thu nào được công bố.
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-4">
-            {exploreRecords.map((record) => (
-              <div
-                key={record._id}
-                className="group flex flex-col cursor-pointer border border-border rounded-xl overflow-hidden hover:border-primary/50 transition-colors bg-card shadow-sm hover:shadow-md"
-                onClick={() => {
-                  if (!record.project_id) {
-                    alert("Phòng Jam chứa bản thu này đã bị xóa hoàn toàn khỏi hệ thống!");
-                    return;
-                  }
-                  window.location.href = `/jam-room?id=${record.project_id._id}&trackId=${record._id}`;
-                }}
-              >
-                <div className="aspect-square bg-muted/30 flex items-center justify-center group-hover:bg-muted/50 transition-colors">
-                  <Disc className="w-24 h-24 sm:w-32 sm:h-32 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
-                </div>
-                <div className="p-4 flex flex-col flex-1 border-t border-border/50">
-                  <h3
-                    className="font-bold text-sm truncate"
-                    title={record.name}
-                  >
-                    {record.name}
-                  </h3>
-                  <p
-                    className="text-xs text-muted-foreground truncate mt-1"
-                    title={record.project_id?.title}
-                  >
-                    {record.project_id?.title || "Dự án không xác định"}
-                  </p>
-                  <div className="mt-auto pt-3 flex items-center justify-between">
-                    <span className="text-[10px] uppercase tracking-wider font-semibold bg-secondary text-secondary-foreground px-2 py-1 rounded-md">
-                      {record.instrument}
-                    </span>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span>{formatDuration(record.duration)}</span>
-                      <div className="flex items-center gap-1">
-                        <Heart className="w-3.5 h-3.5 text-destructive fill-current" />
-                        <span className="font-bold text-foreground">
-                          {record.likes_count || 0}
-                        </span>
+          <div className="pt-2 sm:pt-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+              {paginatedExploreRecords.map((record) => (
+                <div
+                  key={record._id}
+                  className="group flex flex-col cursor-pointer border border-border rounded-xl sm:rounded-xl overflow-hidden hover:border-primary/50 transition-colors bg-card shadow-sm hover:shadow-md"
+                  onClick={() => {
+                    if (!record.project_id) {
+                      alert(
+                        "Phòng Jam chứa bản thu này đã bị xóa hoàn toàn khỏi hệ thống!",
+                      );
+                      return;
+                    }
+                    window.location.href = `/jam-room?id=${record.project_id._id}&trackId=${record._id}`;
+                  }}
+                >
+                  <div className="aspect-square bg-muted/30 flex items-center justify-center group-hover:bg-muted/50 transition-colors">
+                    <Disc className="w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
+                  </div>
+                  <div className="p-3 sm:p-4 flex flex-col flex-1 border-t border-border/50">
+                    <h3
+                      className="font-bold text-xs sm:text-sm truncate"
+                      title={record.name}
+                    >
+                      {record.name}
+                    </h3>
+                    <p
+                      className="text-[10px] sm:text-xs text-muted-foreground truncate mt-0.5 sm:mt-1"
+                      title={record.project_id?.title}
+                    >
+                      {record.project_id?.title || "Dự án không xác định"}
+                    </p>
+                    <div className="mt-auto pt-2 sm:pt-3 flex items-center justify-between">
+                      <span className="text-[9px] sm:text-[10px] uppercase tracking-wider font-semibold bg-secondary text-secondary-foreground px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-sm sm:rounded-md max-w-[60px] sm:max-w-none truncate">
+                        {record.instrument}
+                      </span>
+                      <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-muted-foreground shrink-0">
+                        <span>{formatDuration(record.duration)}</span>
+                        <div className="flex items-center gap-1">
+                          <Heart className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-destructive fill-current" />
+                          <span className="font-bold text-foreground">
+                            {record.likes_count || 0}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            {/* Phân trang Khám phá cộng đồng */}
+            <PaginationControls
+              currentPage={exploreRecordsPage}
+              setPage={setExploreRecordsPage}
+              totalItems={exploreRecords.length}
+            />
           </div>
         )}
       </div>
 
       {/* Spacer dự phòng để không dính lề */}
-      <div className="w-full h-20 shrink-0"></div>
+      <div className="w-full h-20 shrink-0 sm:hidden"></div>
     </div>
   );
 }
