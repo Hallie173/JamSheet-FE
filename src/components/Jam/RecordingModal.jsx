@@ -617,23 +617,47 @@ export default function RecordingModal({
     setIsUploading(true);
     setIsNameModalOpen(false);
     try {
-      const formData = new FormData();
+      let finalAudioUrl = null;
       let blobToSave = useAiClean ? cleanAudioBlob : rawAudioBlob;
 
+      // 1. NẾU CÓ FILE MỚI -> BẮN THẲNG LÊN CLOUDINARY
       if (blobToSave) {
+        const formDataCloud = new FormData();
         const fileExtension = useAiClean ? "wav" : "webm";
         const file = new File([blobToSave], `record.${fileExtension}`, {
           type: blobToSave.type || (useAiClean ? "audio/wav" : "audio/webm"),
         });
-        formData.append("audio", file);
+        
+        formDataCloud.append("file", file);
+        formDataCloud.append("upload_preset", "jamsheet_preset");
+        formDataCloud.append("folder", "jamroom_audio");
+
+        // Cloudinary dùng endpoint 'video' cho các file âm thanh (audio)
+        const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/dfwrrelbq/video/upload`, {
+          method: "POST",
+          body: formDataCloud,
+        });
+        const cloudData = await cloudRes.json();
+        if (!cloudRes.ok) throw new Error(cloudData.error.message);
+        
+        finalAudioUrl = cloudData.secure_url;
       }
 
-      formData.append("instrument", recordingTrack.instrument);
-      formData.append("status", saveTargetStatus);
+      // 2. GÓI DỮ LIỆU THÀNH JSON GỬI VỀ BACKEND
       const finalName = customTrackName.trim() || (saveTargetStatus === "published" ? `Take ${recordingTrack.instrument}` : "Bản nháp");
-      formData.append("name", finalName);
-      formData.append("sync_offset_ms", syncOffset);
-      formData.append("use_ai_clean", useAiClean);
+      
+      const payload = {
+        instrument: recordingTrack.instrument,
+        status: saveTargetStatus,
+        name: finalName,
+        sync_offset_ms: syncOffset,
+        use_ai_clean: useAiClean,
+      };
+      
+      // Nếu có URL âm thanh mới thì thêm vào JSON
+      if (finalAudioUrl) {
+        payload.raw_audio_url = finalAudioUrl;
+      }
 
       const params = new URLSearchParams(window.location.search);
       const draftId = params.get("draftId");
@@ -642,10 +666,14 @@ export default function RecordingModal({
         ? `${baseUrl}/api/jams/tracks/${draftId}`
         : `${baseUrl}/api/jams/${activeRoom.id}/tracks`;
 
+      // API Backend giờ đây chỉ nhận JSON siêu nhẹ
       const response = await fetch(url, {
         method: draftId ? "PUT" : "POST",
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        body: formData,
+        headers: { 
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
