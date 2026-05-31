@@ -748,16 +748,53 @@ export default function SheetsLibrary() {
             </div>
             <form onSubmit={handleUploadSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label>File Nhạc phổ (JPG/PNG) *</Label>
+                <Label>File Nhạc phổ (Chỉ nhận Ảnh JPG/PNG) *</Label>
                 <Input
                   type="file"
                   accept="image/png, image/jpeg, image/jpg"
-                  onChange={(e) =>
-                    setUploadData({ ...uploadData, files: Array.from(e.target.files) })
-                  }
-                  required
+                  multiple
+                  onChange={(e) => {
+                    // 1. Lấy các file mới được chọn
+                    const newFiles = Array.from(e.target.files);
+                    // 2. CỘNG DỒN file mới vào danh sách file cũ thay vì ghi đè
+                    setUploadData({ 
+                      ...uploadData, 
+                      files: [...uploadData.files, ...newFiles] 
+                    });
+                    // 3. Reset giá trị thẻ input để có thể chọn lại chính file đó nếu lỡ tay xóa
+                    e.target.value = null; 
+                  }}
                   className="cursor-pointer"
                 />
+                
+                {/* 4. Giao diện hiển thị danh sách các ảnh đã chọn */}
+                {uploadData.files.length > 0 && (
+                  <div className="bg-muted/30 p-3 rounded-md border border-border mt-2">
+                    <p className="text-xs font-semibold text-primary mb-2">
+                      Đã chọn {uploadData.files.length} trang nhạc phổ:
+                    </p>
+                    <ul className="space-y-1">
+                      {uploadData.files.map((file, index) => (
+                        <li key={index} className="flex justify-between items-center text-xs">
+                          <span className="truncate max-w-[250px] text-muted-foreground">
+                            {index + 1}. {file.name}
+                          </span>
+                          <button 
+                            type="button" 
+                            className="text-destructive font-medium hover:underline ml-2"
+                            onClick={() => {
+                              // Chức năng xóa bớt ảnh nếu chọn nhầm
+                              const filteredFiles = uploadData.files.filter((_, i) => i !== index);
+                              setUploadData({ ...uploadData, files: filteredFiles });
+                            }}
+                          >
+                            Xóa
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Tên bản nhạc *</Label>
