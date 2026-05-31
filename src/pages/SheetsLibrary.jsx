@@ -174,7 +174,7 @@ export default function SheetsLibrary() {
         formData.append("folder", "jamsheet_sheets");
 
         // Gửi thẳng vào cloud name 'dfwrrelbq' của bạn
-        const res = await fetch(`https://api.cloudinary.com/v1_1/dfwrrelbq/auto/upload`, {
+        const res = await fetch(`https://api.cloudinary.com/v1_1/dfwrrelbq/image/upload`, {
           method: "POST",
           body: formData,
         });
@@ -748,10 +748,10 @@ export default function SheetsLibrary() {
             </div>
             <form onSubmit={handleUploadSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label>File Nhạc phổ (Ảnh hoặc PDF) *</Label>
+                <Label>File Nhạc phổ (JPG/PNG) *</Label>
                 <Input
                   type="file"
-                  accept="image/*,.pdf"
+                  accept="image/png, image/jpeg, image/jpg"
                   onChange={(e) =>
                     setUploadData({ ...uploadData, files: Array.from(e.target.files) })
                   }
