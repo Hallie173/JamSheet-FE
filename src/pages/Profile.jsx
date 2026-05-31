@@ -90,7 +90,15 @@ export default function Profile() {
 
       const data = await res.json();
       if (res.ok) {
-        setProfile((prev) => ({ ...prev, ...data.user }));
+        const { username, bio, avatar_url, cover_url, instruments } = data.user;
+        setProfile((prev) => ({
+          ...prev,
+          username,
+          bio,
+          avatar_url,
+          cover_url,
+          instruments,
+        }));
         setIsEditing(false);
       } else {
         alert(data.message || "Lỗi cập nhật!");
@@ -115,10 +123,13 @@ export default function Profile() {
       formData.append("upload_preset", "jamsheet_preset"); // Dùng chung preset với nhạc phổ
       formData.append("folder", "jamsheet_avatars");
 
-      const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/dfwrrelbq/image/upload`, {
-        method: "POST",
-        body: formData,
-      });
+      const cloudRes = await fetch(
+        `https://api.cloudinary.com/v1_1/dfwrrelbq/image/upload`,
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
       const cloudData = await cloudRes.json();
       if (!cloudRes.ok) throw new Error(cloudData.error.message);
 
@@ -128,17 +139,17 @@ export default function Profile() {
       const token = localStorage.getItem("token");
       const res = await fetch(getApiUrl(API_ENDPOINTS.USERS_AVATAR), {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json", // Chú ý: Đã đổi sang JSON
-          Authorization: `Bearer ${token}` 
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ avatar_url }),
       });
 
       const data = await res.json();
       if (res.ok) {
-        setEditData(prev => ({ ...prev, avatar_url: data.avatar_url }));
-        setProfile(prev => ({ ...prev, avatar_url: data.avatar_url }));
+        setEditData((prev) => ({ ...prev, avatar_url: data.avatar_url }));
+        setProfile((prev) => ({ ...prev, avatar_url: data.avatar_url }));
       } else {
         alert(data.message || "Lỗi cập nhật link ảnh!");
       }
@@ -162,10 +173,13 @@ export default function Profile() {
       formData.append("upload_preset", "jamsheet_preset");
       formData.append("folder", "jamsheet_covers");
 
-      const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/dfwrrelbq/image/upload`, {
-        method: "POST",
-        body: formData,
-      });
+      const cloudRes = await fetch(
+        `https://api.cloudinary.com/v1_1/dfwrrelbq/image/upload`,
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
       const cloudData = await cloudRes.json();
       if (!cloudRes.ok) throw new Error(cloudData.error.message);
 
@@ -175,17 +189,17 @@ export default function Profile() {
       const token = localStorage.getItem("token");
       const res = await fetch(getApiUrl(API_ENDPOINTS.USERS_UPLOAD_COVER), {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` 
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ cover_url }),
       });
 
       const data = await res.json();
       if (res.ok) {
-        setEditData(prev => ({ ...prev, cover_url: data.cover_url }));
-        setProfile(prev => ({ ...prev, cover_url: data.cover_url }));
+        setEditData((prev) => ({ ...prev, cover_url: data.cover_url }));
+        setProfile((prev) => ({ ...prev, cover_url: data.cover_url }));
       } else {
         alert(data.message || "Lỗi cập nhật link ảnh bìa!");
       }
