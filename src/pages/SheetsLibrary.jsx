@@ -44,6 +44,10 @@ export default function SheetsLibrary() {
   const [editingSheetId, setEditingSheetId] = useState(null);
   const exploreRef = useRef(null);
 
+  // Trạng thái khi notification dẫn đến sheet đã bị frozen/xóa
+  const [notifSheetError, setNotifSheetError] = useState(null); // null | 'not_found' | 'ok'
+  const [notifSheetFound, setNotifSheetFound] = useState(null); // sheet object nếu tìm thấy
+
   // --- PAGINATION STATES ---
   const [mySheetsPage, setMySheetsPage] = useState(1);
   const [exploreSheetsPage, setExploreSheetsPage] = useState(1);
@@ -82,8 +86,39 @@ export default function SheetsLibrary() {
   const fetchExploreSheets = useCallback(async () => {
     try {
       const params = new URLSearchParams(location.search);
-      const queryString = params.toString();
+      const sheetId = params.get("sheet_id");
 
+      // Nếu URL có ?sheet_id= (từ notification), kiểm tra sheet theo ID
+      if (sheetId) {
+        const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+        const res = await fetch(`${baseUrl}/api/sheets/${sheetId}`, {
+          headers: { "Cache-Control": "no-cache" },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          // Sheet còn tồn tại và không bị frozen → hiển thị trong explore
+          setNotifSheetError(null);
+          setNotifSheetFound(formatSheetData(data));
+          setExploreSheets([formatSheetData(data)]);
+          setExploreSheetsPage(1);
+        } else {
+          // Sheet bị frozen hoặc không tồn tại
+          setNotifSheetError("not_found");
+          setNotifSheetFound(null);
+          setExploreSheets([]);
+        }
+        setTimeout(() => {
+          if (exploreRef.current) {
+            exploreRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }, 100);
+        return;
+      }
+
+      // Trường hợp tìm kiếm thông thường
+      setNotifSheetError(null);
+      setNotifSheetFound(null);
+      const queryString = params.toString();
       const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
       const timestamp = new Date().getTime();
 
@@ -776,7 +811,11 @@ export default function SheetsLibrary() {
           <h2 className="text-lg sm:text-2xl font-bold">Khám phá Cộng đồng</h2>
         </div>
 
-        {exploreSheets.length === 0 ? (
+        {notifSheetError === "not_found" ? (
+          <div className="text-center py-10 text-muted-foreground text-sm">
+            Không tìm thấy nhạc phổ nào phù hợp.
+          </div>
+        ) : exploreSheets.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground text-sm">
             Không tìm thấy nhạc phổ nào phù hợp.
           </div>
