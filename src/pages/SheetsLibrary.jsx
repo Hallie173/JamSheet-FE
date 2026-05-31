@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import {
-  Music,
   Heart,
   Users,
   UploadCloud,
@@ -18,8 +18,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardFooter, CardHeader } from "@/components/ui/card";
+import { getApiUrl, API_ENDPOINTS } from "@/lib/constants";
+
+const formatSheetData = (sheet) => ({
+  ...sheet,
+  id: sheet._id,
+  thumbnail:
+    sheet.file_urls && sheet.file_urls.length > 0
+      ? sheet.file_urls[0]
+      : sheet.file_url || "",
+  sheetUrls: sheet.file_urls || [],
+  liked_by: sheet.liked_by || [],
+});
 
 export default function SheetsLibrary() {
+  const location = useLocation();
   const isLoggedIn = !!localStorage.getItem("token");
   const userStr = localStorage.getItem("user");
   const currentUser = userStr ? JSON.parse(userStr) : null;
@@ -29,12 +42,12 @@ export default function SheetsLibrary() {
   const [exploreSheets, setExploreSheets] = useState([]);
   const [selectedSheet, setSelectedSheet] = useState(null);
   const [editingSheetId, setEditingSheetId] = useState(null);
-  const exploreRef = React.useRef(null);
+  const exploreRef = useRef(null);
 
   // --- PAGINATION STATES ---
   const [mySheetsPage, setMySheetsPage] = useState(1);
   const [exploreSheetsPage, setExploreSheetsPage] = useState(1);
-  const ITEMS_PER_PAGE = 6;
+  const ITEMS_PER_PAGE = 6; // 3 dòng x 2 cột trên mobile
 
   const [editFormData, setEditFormData] = useState({
     title: "",
@@ -65,46 +78,35 @@ export default function SheetsLibrary() {
     required_instruments: "",
   });
 
+  // Theo dõi thay đổi URL search parameters để tự động tìm kiếm
   useEffect(() => {
     fetchExploreSheets();
     if (isLoggedIn) fetchMySheets();
-  }, [isLoggedIn]);
+  }, [location.search, isLoggedIn]);
 
-  // Theo dõi thay đổi URL search parameters để tự động tìm kiếm
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.toString()) {
-      fetchExploreSheets();
-    }
-  }, [window.location.search]);
-
-  const formatSheetData = (sheet) => ({
-    ...sheet,
-    id: sheet._id,
-    // LẤY TRANG ĐẦU TIÊN LÀM ẢNH BÌA
-    thumbnail:
-      sheet.file_urls && sheet.file_urls.length > 0
-        ? sheet.file_urls[0]
-        : sheet.file_url || "",
-    sheetUrls: sheet.file_urls || [],
-    liked_by: sheet.liked_by || [],
-  });
-
-const fetchExploreSheets = async () => {
+  // 1. Dùng useCallback bọc lại hàm fetch cộng đồng
+  const fetchExploreSheets = useCallback(async () => {
     try {
-      const params = new URLSearchParams(window.location.search);
+      const params = new URLSearchParams(location.search);
       const queryString = params.toString();
 
       const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      const endpoint = queryString
-        ? `${baseUrl}/api/sheets/search?${queryString}`
-        : `${baseUrl}/api/sheets/explore`;
+      const timestamp = new Date().getTime();
 
-      const res = await fetch(endpoint);
+      const endpoint = queryString
+        ? `${baseUrl}/api/sheets/search?${queryString}&t=${timestamp}`
+        : `${baseUrl}/api/sheets/explore?t=${timestamp}`;
+
+      const res = await fetch(endpoint, {
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      });
       const data = await res.json();
       if (res.ok) {
         setExploreSheets(data.map(formatSheetData));
-        setExploreSheetsPage(1); // Reset page khi fetch mới
+        setExploreSheetsPage(1);
 
         if (queryString) {
           setTimeout(() => {
@@ -120,20 +122,35 @@ const fetchExploreSheets = async () => {
     } catch (error) {
       console.error(error);
     }
-  };
+  }, [location.search]); // Theo dõi location.search ở đây
 
-  const fetchMySheets = async () => {
+  // 2. Dùng useCallback bọc lại hàm fetch cá nhân
+  const fetchMySheets = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets/my-sheets`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const timestamp = new Date().getTime();
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets/my-sheets?t=${timestamp}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
+        },
+      );
       const data = await res.json();
       if (res.ok) setMySheets(data.map(formatSheetData));
     } catch (error) {
       console.error(error);
     }
-  };
+  }, []);
+
+  // 3. useEffect bây giờ cực kỳ gọn gàng và chuẩn xác
+  useEffect(() => {
+    fetchExploreSheets();
+    if (isLoggedIn) fetchMySheets();
+  }, [fetchExploreSheets, fetchMySheets, isLoggedIn]);
 
   const handleToggleLike = async (e, id) => {
     e.stopPropagation();
@@ -157,10 +174,13 @@ const fetchExploreSheets = async () => {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets/${id}/like`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets/${id}/like`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       if (!res.ok) throw new Error("Lỗi Server");
     } catch (error) {
       console.error("Lỗi cập nhật Like:", error);
@@ -169,30 +189,30 @@ const fetchExploreSheets = async () => {
 
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
-    if (!uploadData.files || uploadData.files.length === 0) return alert("Vui lòng chọn ít nhất 1 ảnh nhạc phổ!");
-    
+    if (!uploadData.files || uploadData.files.length === 0)
+      return alert("Vui lòng chọn ít nhất 1 ảnh nhạc phổ!");
+
     try {
-      // 1. UPLOAD TRỰC TIẾP TỪ BROWSER LÊN CLOUDINARY
       const uploadPromises = uploadData.files.map(async (file) => {
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("upload_preset", "jamsheet_preset"); // Preset unsigned bạn vừa tạo
+        formData.append("upload_preset", "jamsheet_preset");
         formData.append("folder", "jamsheet_sheets");
 
-        // Gửi thẳng vào cloud name 'dfwrrelbq' của bạn
-        const res = await fetch(`https://api.cloudinary.com/v1_1/dfwrrelbq/image/upload`, {
-          method: "POST",
-          body: formData,
-        });
+        const res = await fetch(
+          `https://api.cloudinary.com/v1_1/dfwrrelbq/image/upload`,
+          {
+            method: "POST",
+            body: formData,
+          },
+        );
         const data = await res.json();
         if (!res.ok) throw new Error(data.error.message);
         return data.secure_url;
       });
 
-      // Chờ Cloudinary trả về toàn bộ mảng link ảnh
       const file_urls = await Promise.all(uploadPromises);
 
-      // 2. GỬI DATA (Chỉ chứa Link) VỀ BACKEND RENDER
       const token = localStorage.getItem("token");
       const sheetData = {
         title: uploadData.title,
@@ -201,24 +221,35 @@ const fetchExploreSheets = async () => {
         tempo: uploadData.tempo,
         genre: uploadData.genre,
         time_signature: uploadData.time_signature,
-        file_urls: file_urls // Truyền thẳng mảng link ảnh, không truyền file nữa
+        file_urls: file_urls,
       };
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets`, {
-        method: "POST",
-        headers: { 
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json" 
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(sheetData),
         },
-        body: JSON.stringify(sheetData),
-      });
+      );
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
       setMySheets([formatSheetData(data.sheet), ...mySheets]);
       setIsUploadModalOpen(false);
-      setUploadData({ title: "", composer: "", instrument_tags: "", tempo: "", genre: "", time_signature: "", files: [] });
+      setUploadData({
+        title: "",
+        composer: "",
+        instrument_tags: "",
+        tempo: "",
+        genre: "",
+        time_signature: "",
+        files: [],
+      });
       alert("Tải lên thành công rực rỡ!");
     } catch (error) {
       alert("Lỗi tải lên: " + error.message);
@@ -247,14 +278,20 @@ const fetchExploreSheets = async () => {
         .map((t) => t.trim())
         .filter((t) => t !== "");
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            ...editFormData,
+            instrument_tags: updatedTags,
+          }),
         },
-        body: JSON.stringify({ ...editFormData, instrument_tags: updatedTags }),
-      });
+      );
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
@@ -273,10 +310,13 @@ const fetchExploreSheets = async () => {
     if (window.confirm("Bạn có chắc chắn muốn xóa nhạc phổ này?")) {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets/${id}`,
+          {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
         if (!res.ok) throw new Error("Lỗi server");
         setMySheets(mySheets.filter((s) => s.id !== id));
       } catch (error) {
@@ -365,19 +405,22 @@ const fetchExploreSheets = async () => {
         .map((i) => i.trim())
         .filter((i) => i);
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/jams`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/jams`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            ...jamFormData,
+            sheet_music_id: jamFormData.sheet_id,
+            tempo: Number(jamFormData.tempo),
+            required_instruments: instrumentsArray,
+          }),
         },
-        body: JSON.stringify({
-          ...jamFormData,
-          sheet_music_id: jamFormData.sheet_id,
-          tempo: Number(jamFormData.tempo),
-          required_instruments: instrumentsArray,
-        }),
-      });
+      );
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
@@ -388,7 +431,6 @@ const fetchExploreSheets = async () => {
     }
   };
 
-  // --- HELPER COMPONENT PHÂN TRANG ---
   const PaginationControls = ({ currentPage, setPage, totalItems }) => {
     const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
     if (totalPages <= 1) return null;
@@ -420,7 +462,6 @@ const fetchExploreSheets = async () => {
     );
   };
 
-  // Component tái sử dụng cho giao diện Thẻ Nhạc Phổ (Card)
   const renderSheetCard = (sheet, isMySheet) => {
     const isLiked = sheet.liked_by.includes(currentUserId);
     const likeCount = sheet.liked_by.length;
@@ -444,7 +485,6 @@ const fetchExploreSheets = async () => {
           }
         }}
       >
-        {/* ===================== CÁC NÚT THAO TÁC (Chống Hover lỗi trên Mobile) ===================== */}
         {/* NÚT TẠO / ĐẾN JAM */}
         <div className="absolute top-2 left-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 z-10">
           {isMySheet && editingSheetId !== sheet.id ? (
@@ -453,8 +493,10 @@ const fetchExploreSheets = async () => {
               className="gap-1 sm:gap-2 h-7 sm:h-9 px-2 sm:px-4 shadow-lg shadow-primary/25 rounded-md"
               onClick={(e) => handleJamNow(e, sheet)}
             >
-              <PlayCircle className="w-3.5 h-3.5" /> 
-              <span className="text-[10px] sm:text-sm font-semibold">Tạo Jam</span>
+              <PlayCircle className="w-3.5 h-3.5" />
+              <span className="text-[10px] sm:text-sm font-semibold">
+                Tạo Jam
+              </span>
             </Button>
           ) : (
             !isMySheet && (
@@ -464,8 +506,10 @@ const fetchExploreSheets = async () => {
                 className="gap-1 sm:gap-2 h-7 sm:h-9 px-2 sm:px-4 shadow-lg bg-background/90 hover:bg-background backdrop-blur-sm rounded-md border border-border"
                 onClick={(e) => handleJoinJam(e, sheet.id)}
               >
-                <Users className="w-3.5 h-3.5 text-emerald-500" /> 
-                <span className="text-[10px] sm:text-sm font-semibold">Đến phòng</span>
+                <Users className="w-3.5 h-3.5 text-emerald-500" />
+                <span className="text-[10px] sm:text-sm font-semibold">
+                  Đến phòng
+                </span>
               </Button>
             )
           )}
@@ -501,7 +545,7 @@ const fetchExploreSheets = async () => {
           </div>
         )}
 
-        {/* ===================== FORM CHỈNH SỬA ===================== */}
+        {/* FORM CHỈNH SỬA */}
         {isMySheet && editingSheetId === sheet.id && (
           <div
             className="p-3 sm:p-4 flex flex-col gap-2.5 h-full bg-background absolute inset-0 z-20 overflow-y-auto custom-scrollbar"
@@ -573,15 +617,13 @@ const fetchExploreSheets = async () => {
           </div>
         )}
 
-        {/* ===================== NỘI DUNG CARD ===================== */}
         <div className="aspect-[4/5] w-full bg-white dark:bg-white relative border-b border-border/50 overflow-hidden flex items-center justify-center">
           {isPdf && !isCloudinary ? (
             <FileText className="w-12 h-12 sm:w-16 sm:h-16 text-muted-foreground/50 group-hover:scale-110 transition-transform" />
           ) : (
             <img
               src={
-                finalImageUrl ||
-                "https://placehold.co/400x600?text=No+Image"
+                finalImageUrl || "https://placehold.co/400x600?text=No+Image"
               }
               onError={(e) => {
                 e.target.src =
@@ -609,7 +651,7 @@ const fetchExploreSheets = async () => {
             ))}
           </div>
         </div>
-        
+
         <CardHeader className="p-2 sm:p-3 pb-0 shrink-0">
           <h3
             className="text-sm sm:text-base font-bold leading-tight truncate"
@@ -649,20 +691,18 @@ const fetchExploreSheets = async () => {
     );
   };
 
-  // Tính toán dữ liệu cắt theo trang
   const paginatedMySheets = mySheets.slice(
     (mySheetsPage - 1) * ITEMS_PER_PAGE,
-    mySheetsPage * ITEMS_PER_PAGE
+    mySheetsPage * ITEMS_PER_PAGE,
   );
 
   const paginatedExploreSheets = exploreSheets.slice(
     (exploreSheetsPage - 1) * ITEMS_PER_PAGE,
-    exploreSheetsPage * ITEMS_PER_PAGE
+    exploreSheetsPage * ITEMS_PER_PAGE,
   );
 
   return (
     <div className="flex flex-col h-full space-y-6 sm:space-y-8 relative px-4 sm:px-8 pb-32 mb-8 mt-4 sm:mt-0">
-      {/* HEADER */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
@@ -685,7 +725,6 @@ const fetchExploreSheets = async () => {
         </Button>
       </div>
 
-      {/* KHU VỰC DỮ LIỆU CÁ NHÂN (MY SHEETS) */}
       <div className="space-y-4">
         <h2 className="text-lg sm:text-xl font-bold border-b border-border pb-2">
           Nhạc phổ của tôi
@@ -699,7 +738,10 @@ const fetchExploreSheets = async () => {
             <p className="text-sm sm:text-base text-muted-foreground max-w-sm mx-auto mb-6">
               Đăng nhập để lưu trữ và chia sẻ nhạc phổ của riêng bạn.
             </p>
-            <Button className="h-12 sm:h-10 rounded-xl sm:rounded-md px-6" onClick={() => (window.location.href = "/login")}>
+            <Button
+              className="h-12 sm:h-10 rounded-xl sm:rounded-md px-6"
+              onClick={() => (window.location.href = "/login")}
+            >
               Đăng nhập ngay
             </Button>
           </div>
@@ -722,7 +764,6 @@ const fetchExploreSheets = async () => {
           </div>
         ) : (
           <>
-            {/* ĐÃ SỬA: grid-cols-2 mặc định cho Mobile */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
               {paginatedMySheets.map((sheet) => renderSheetCard(sheet, true))}
             </div>
@@ -735,21 +776,22 @@ const fetchExploreSheets = async () => {
         )}
       </div>
 
-      {/* KHU VỰC CỘNG ĐỒNG */}
       <div ref={exploreRef} className="space-y-4 pt-4 sm:pt-6">
         <div className="flex items-center gap-2">
           <Search className="w-5 h-5 text-primary" />
           <h2 className="text-lg sm:text-2xl font-bold">Khám phá Cộng đồng</h2>
         </div>
-        
+
         {exploreSheets.length === 0 ? (
-           <div className="text-center py-10 text-muted-foreground text-sm">
-             Không tìm thấy nhạc phổ nào phù hợp.
-           </div>
+          <div className="text-center py-10 text-muted-foreground text-sm">
+            Không tìm thấy nhạc phổ nào phù hợp.
+          </div>
         ) : (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-              {paginatedExploreSheets.map((sheet) => renderSheetCard(sheet, false))}
+              {paginatedExploreSheets.map((sheet) =>
+                renderSheetCard(sheet, false),
+              )}
             </div>
             <PaginationControls
               currentPage={exploreSheetsPage}
@@ -785,20 +827,15 @@ const fetchExploreSheets = async () => {
                   accept="image/png, image/jpeg, image/jpg"
                   multiple
                   onChange={(e) => {
-                    // 1. Lấy các file mới được chọn
                     const newFiles = Array.from(e.target.files);
-                    // 2. CỘNG DỒN file mới vào danh sách file cũ thay vì ghi đè
-                    setUploadData({ 
-                      ...uploadData, 
-                      files: [...uploadData.files, ...newFiles] 
+                    setUploadData({
+                      ...uploadData,
+                      files: [...uploadData.files, ...newFiles],
                     });
-                    // 3. Reset giá trị thẻ input để có thể chọn lại chính file đó nếu lỡ tay xóa
-                    e.target.value = null; 
+                    e.target.value = null;
                   }}
                   className="cursor-pointer"
                 />
-                
-                {/* 4. Giao diện hiển thị danh sách các ảnh đã chọn */}
                 {uploadData.files.length > 0 && (
                   <div className="bg-muted/30 p-3 rounded-md border border-border mt-2">
                     <p className="text-xs font-semibold text-primary mb-2">
@@ -806,17 +843,24 @@ const fetchExploreSheets = async () => {
                     </p>
                     <ul className="space-y-1">
                       {uploadData.files.map((file, index) => (
-                        <li key={index} className="flex justify-between items-center text-xs">
+                        <li
+                          key={index}
+                          className="flex justify-between items-center text-xs"
+                        >
                           <span className="truncate max-w-[250px] text-muted-foreground">
                             {index + 1}. {file.name}
                           </span>
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             className="text-destructive font-medium hover:underline ml-2"
                             onClick={() => {
-                              // Chức năng xóa bớt ảnh nếu chọn nhầm
-                              const filteredFiles = uploadData.files.filter((_, i) => i !== index);
-                              setUploadData({ ...uploadData, files: filteredFiles });
+                              const filteredFiles = uploadData.files.filter(
+                                (_, i) => i !== index,
+                              );
+                              setUploadData({
+                                ...uploadData,
+                                files: filteredFiles,
+                              });
                             }}
                           >
                             Xóa
@@ -915,7 +959,7 @@ const fetchExploreSheets = async () => {
         </div>
       )}
 
-      {/* MODAL XEM ẢNH TOÀN MÀN HÌNH (Đã nâng cấp hỗ trợ nhiều trang) */}
+      {/* MODAL XEM ẢNH TOÀN MÀN HÌNH */}
       {selectedSheet && (
         <div className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center animate-in fade-in duration-200">
           <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center text-white z-50 bg-gradient-to-b from-black/80 to-transparent">
@@ -954,7 +998,6 @@ const fetchExploreSheets = async () => {
 
           <div className="relative w-full h-full flex flex-col items-center justify-start p-4 pt-20 sm:p-12 overflow-y-auto custom-scrollbar gap-4">
             {selectedSheet.sheetUrls && selectedSheet.sheetUrls.length > 0 ? (
-              // Nếu mảng hình ảnh tồn tại, render dọc toàn bộ các trang (Giúp đọc Full PDF thoải mái)
               selectedSheet.sheetUrls.map((url, index) => (
                 <img
                   key={index}
@@ -964,14 +1007,12 @@ const fetchExploreSheets = async () => {
                 />
               ))
             ) : selectedSheet.file_url?.toLowerCase().endsWith(".pdf") ? (
-              // Backup dành cho dữ liệu cũ (Dùng iframe)
               <iframe
                 src={selectedSheet.file_url}
                 className="w-full h-full rounded-md shadow-2xl bg-white"
                 title={selectedSheet.title}
               ></iframe>
             ) : (
-              // Backup ảnh đơn
               <img
                 src={selectedSheet.file_url}
                 alt="Sheet"
@@ -1001,7 +1042,6 @@ const fetchExploreSheets = async () => {
             <form onSubmit={handleCreateJamSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label>Tên bài hát (Từ Nhạc phổ)</Label>
-                {/* Thuộc tính readOnly khóa input */}
                 <Input
                   value={jamFormData.title}
                   readOnly
@@ -1069,7 +1109,7 @@ const fetchExploreSheets = async () => {
       )}
 
       {/* Spacer dự phòng để không dính lề */}
-      <div className="w-full h-20 shrink-0"></div>
+      <div className="w-full h-20 shrink-0 sm:hidden"></div>
     </div>
   );
 }
