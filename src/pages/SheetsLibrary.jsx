@@ -696,6 +696,9 @@ export default function SheetsLibrary() {
               {sheet.tempo} BPM
             </span>
           </div>
+          <p className="text-[9px] sm:text-[10px] text-muted-foreground/70 truncate mt-0.5">
+            Tải lên bởi: <span className="font-medium text-muted-foreground">{sheet.uploader_id?.username || "Ẩn danh"}</span>
+          </p>
         </CardHeader>
 
         <CardFooter className="p-2 sm:p-3 pt-2 shrink-0 flex items-center justify-between text-muted-foreground border-t border-border/50 mt-auto">
