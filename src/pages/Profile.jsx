@@ -502,22 +502,23 @@ export default function Profile() {
         </div>
 
         {/* ================= BIỂU ĐỒ NHIỆT (ACTIVITY HEATMAP) ================= */}
-        <div className="mt-8 bg-card/30 border border-border/50 rounded-2xl sm:rounded-xl p-4 sm:p-6 shadow-xl sm:shadow-sm overflow-x-auto">
-          <div className="flex items-center gap-2 mb-4 sm:mb-6 min-w-max">
+        <div className="mt-8 bg-card/30 border border-border/50 rounded-2xl sm:rounded-xl p-4 sm:p-6 shadow-xl sm:shadow-sm">
+          <div className="flex items-center gap-2 mb-4 sm:mb-6">
             <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
             <h3 className="font-bold text-base sm:text-lg">
               Nhật ký hoạt động (90 ngày qua)
             </h3>
           </div>
 
-          <div className="flex gap-1 sm:gap-1.5 justify-start md:justify-start min-w-[650px] pb-2">
+          {/* Grid 10 cột trên mobile → 15 cột trên desktop → 90 ô = 9 hàng / 6 hàng */}
+          <div className="grid grid-cols-10 sm:grid-cols-15 gap-1 sm:gap-1.5 w-full">
             {heatmapDays.map((day, idx) => (
               <div
                 key={idx}
-                className="relative group cursor-pointer flex-shrink-0"
+                className="relative group cursor-pointer"
               >
                 <div
-                  className={`w-3 h-3 sm:w-4 sm:h-4 rounded-[2px] sm:rounded-[3px] border border-gray-300 dark:border-gray-600 transition-colors ${
+                  className={`aspect-square w-full rounded-[2px] sm:rounded-[3px] border border-gray-300 dark:border-gray-600 transition-colors ${
                     day.activities.length === 0
                       ? "bg-muted/30 hover:bg-muted/50"
                       : day.activities.length === 1
@@ -529,12 +530,12 @@ export default function Profile() {
                 />
 
                 {day.activities.length > 0 && (
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max min-w-[120px] sm:min-w-[150px] bg-popover border border-border shadow-2xl rounded-lg p-2 sm:p-3 text-[12px] sm:text-[14px] z-50 opacity-0 group-hover:opacity-100 pointer-events-none transition-all scale-95 group-hover:scale-100">
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max min-w-[120px] sm:min-w-[150px] bg-popover border border-border shadow-2xl rounded-lg p-2 sm:p-3 text-[11px] sm:text-[13px] z-50 opacity-0 group-hover:opacity-100 pointer-events-none transition-all scale-95 group-hover:scale-100">
                     <p className="font-bold border-b border-border pb-1 mb-1 text-primary">
                       {day.date}
                     </p>
                     {day.activities.map((act, i) => (
-                      <div key={i} className="py-1 whitespace-nowrap">
+                      <div key={i} className="py-0.5 whitespace-nowrap">
                         • {act}
                       </div>
                     ))}
@@ -545,7 +546,7 @@ export default function Profile() {
             ))}
           </div>
 
-          <div className="flex justify-between items-center mt-4 sm:mt-6 text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-widest font-bold min-w-[650px]">
+          <div className="flex justify-between items-center mt-4 sm:mt-6 text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
             <span>90 ngày trước</span>
             <div className="flex items-center gap-2">
               <span>Ít</span>
