@@ -503,24 +503,24 @@ export default function Profile() {
 
         {/* ================= BIỂU ĐỒ NHIỆT (ACTIVITY HEATMAP) ================= */}
         <div className="mt-8 bg-card/30 border border-border/50 rounded-2xl sm:rounded-xl p-4 sm:p-6 shadow-xl sm:shadow-sm">
-          <div className="flex items-center gap-2 mb-4 sm:mb-6">
+          <div className="flex items-center gap-2 mb-4 sm:mb-5">
             <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
             <h3 className="font-bold text-base sm:text-lg">
               Nhật ký hoạt động (90 ngày qua)
             </h3>
           </div>
 
-          {/* Grid 10 cột trên mobile → 15 cột trên desktop → 90 ô = 9 hàng / 6 hàng */}
-          <div className="grid grid-cols-10 sm:grid-cols-15 gap-1 sm:gap-1.5 w-full">
+          {/* Ô vuông nhỏ kiểu GitHub: kích thước cố định, flex-wrap tự xuống dòng */}
+          <div className="flex flex-wrap gap-[3px]">
             {heatmapDays.map((day, idx) => (
               <div
                 key={idx}
                 className="relative group cursor-pointer"
               >
                 <div
-                  className={`aspect-square w-full rounded-[2px] sm:rounded-[3px] border border-gray-300 dark:border-gray-600 transition-colors ${
+                  className={`w-[10px] h-[10px] sm:w-[13px] sm:h-[13px] rounded-[2px] border border-gray-300/60 dark:border-gray-600/50 transition-colors ${
                     day.activities.length === 0
-                      ? "bg-muted/30 hover:bg-muted/50"
+                      ? "bg-muted/40 hover:bg-muted/70"
                       : day.activities.length === 1
                         ? "bg-primary/30 hover:bg-primary/50"
                         : day.activities.length === 2
@@ -530,7 +530,7 @@ export default function Profile() {
                 />
 
                 {day.activities.length > 0 && (
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max min-w-[120px] sm:min-w-[150px] bg-popover border border-border shadow-2xl rounded-lg p-2 sm:p-3 text-[11px] sm:text-[13px] z-50 opacity-0 group-hover:opacity-100 pointer-events-none transition-all scale-95 group-hover:scale-100">
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max min-w-[120px] sm:min-w-[150px] bg-popover border border-border shadow-2xl rounded-lg p-2 sm:p-3 text-[11px] sm:text-[12px] z-50 opacity-0 group-hover:opacity-100 pointer-events-none transition-all scale-95 group-hover:scale-100">
                     <p className="font-bold border-b border-border pb-1 mb-1 text-primary">
                       {day.date}
                     </p>
@@ -539,22 +539,22 @@ export default function Profile() {
                         • {act}
                       </div>
                     ))}
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[4px] sm:border-l-[6px] border-r-[4px] sm:border-r-[6px] border-t-[4px] sm:border-t-[6px] border-transparent border-t-popover"></div>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[4px] border-transparent border-t-popover"></div>
                   </div>
                 )}
               </div>
             ))}
           </div>
 
-          <div className="flex justify-between items-center mt-4 sm:mt-6 text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
+          <div className="flex justify-between items-center mt-4 text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
             <span>90 ngày trước</span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <span>Ít</span>
-              <div className="flex gap-1">
-                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-muted/30 rounded-sm"></div>
-                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-primary/30 rounded-sm"></div>
-                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-primary/60 rounded-sm"></div>
-                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-primary rounded-sm"></div>
+              <div className="flex gap-[3px]">
+                <div className="w-[10px] h-[10px] sm:w-[13px] sm:h-[13px] bg-muted/40 rounded-[2px]"></div>
+                <div className="w-[10px] h-[10px] sm:w-[13px] sm:h-[13px] bg-primary/30 rounded-[2px]"></div>
+                <div className="w-[10px] h-[10px] sm:w-[13px] sm:h-[13px] bg-primary/60 rounded-[2px]"></div>
+                <div className="w-[10px] h-[10px] sm:w-[13px] sm:h-[13px] bg-primary rounded-[2px]"></div>
               </div>
               <span>Nhiều</span>
             </div>
