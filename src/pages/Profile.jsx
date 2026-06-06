@@ -510,23 +510,22 @@ export default function Profile() {
             </h3>
           </div>
 
-          {/* Ô vuông nhỏ kiểu GitHub: kích thước cố định, flex-wrap tự xuống dòng */}
-          <div className="flex flex-wrap gap-[3px]">
+          {/* 15 cột × 6 hàng cố định — ô tự co giãn theo chiều rộng container */}
+          <div className="grid grid-cols-15 gap-[3px] w-full">
             {heatmapDays.map((day, idx) => (
               <div
                 key={idx}
                 className="relative group cursor-pointer"
               >
                 <div
-                  className={`w-[10px] h-[10px] sm:w-[13px] sm:h-[13px] rounded-[2px] border border-gray-300/60 dark:border-gray-600/50 transition-colors ${
-                    day.activities.length === 0
+                  className={`aspect-square w-full rounded-[2px] border border-gray-300/50 dark:border-gray-600/40 transition-colors ${day.activities.length === 0
                       ? "bg-muted/40 hover:bg-muted/70"
                       : day.activities.length === 1
                         ? "bg-primary/30 hover:bg-primary/50"
                         : day.activities.length === 2
                           ? "bg-primary/60 hover:bg-primary/80"
                           : "bg-primary hover:bg-primary/90"
-                  }`}
+                    }`}
                 />
 
                 {day.activities.length > 0 && (
@@ -551,10 +550,10 @@ export default function Profile() {
             <div className="flex items-center gap-1.5">
               <span>Ít</span>
               <div className="flex gap-[3px]">
-                <div className="w-[10px] h-[10px] sm:w-[13px] sm:h-[13px] bg-muted/40 rounded-[2px]"></div>
-                <div className="w-[10px] h-[10px] sm:w-[13px] sm:h-[13px] bg-primary/30 rounded-[2px]"></div>
-                <div className="w-[10px] h-[10px] sm:w-[13px] sm:h-[13px] bg-primary/60 rounded-[2px]"></div>
-                <div className="w-[10px] h-[10px] sm:w-[13px] sm:h-[13px] bg-primary rounded-[2px]"></div>
+                <div className="w-3 h-3 bg-muted/40 rounded-[2px]"></div>
+                <div className="w-3 h-3 bg-primary/30 rounded-[2px]"></div>
+                <div className="w-3 h-3 bg-primary/60 rounded-[2px]"></div>
+                <div className="w-3 h-3 bg-primary rounded-[2px]"></div>
               </div>
               <span>Nhiều</span>
             </div>
