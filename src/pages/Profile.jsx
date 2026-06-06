@@ -510,8 +510,8 @@ export default function Profile() {
             </h3>
           </div>
 
-          {/* 15 cột × 6 hàng cố định — ô tự co giãn theo chiều rộng container */}
-          <div className="grid grid-cols-15 gap-[3px] w-full">
+          {/* Mobile: 6×15 — Desktop: 3×30 */}
+          <div className="grid grid-cols-15 sm:grid-cols-30 gap-[3px] w-full">
             {heatmapDays.map((day, idx) => (
               <div
                 key={idx}
