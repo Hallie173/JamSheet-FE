@@ -178,7 +178,12 @@ export default function MyRecords() {
   };
 
   // Tính toán dữ liệu cắt theo trang
-  const paginatedMyRecords = myRecords.slice(
+  // Bản nháp thuộc phòng archived sẽ bị lọc ra — chỉ hiển thị track của phòng còn active
+  const activeRecords = myRecords.filter(
+    (r) => !(r.status === "draft" && r.project_id?.status === "archived")
+  );
+
+  const paginatedMyRecords = activeRecords.slice(
     (myRecordsPage - 1) * ITEMS_PER_PAGE,
     myRecordsPage * ITEMS_PER_PAGE,
   );
@@ -281,7 +286,7 @@ export default function MyRecords() {
 
       {/* Khu vực Dữ liệu cá nhân */}
       <div
-        className={`bg-card border border-border rounded-2xl sm:rounded-xl flex flex-col justify-center shadow-sm ${myRecords.length === 0 ? "p-8 sm:p-12 text-center items-center" : "p-4 sm:p-6"}`}
+        className={`bg-card border border-border rounded-2xl sm:rounded-xl flex flex-col justify-center shadow-sm ${activeRecords.length === 0 ? "p-8 sm:p-12 text-center items-center" : "p-4 sm:p-6"}`}
       >
         {isLoadingMyRecords ? (
           <div className="flex flex-col items-center py-10">
@@ -318,7 +323,7 @@ export default function MyRecords() {
               </a>
             </div>
           </div>
-        ) : myRecords.length === 0 ? (
+        ) : activeRecords.length === 0 ? (
           <div className="flex flex-col items-center">
             <div className="w-12 h-12 sm:w-16 sm:h-16 bg-muted rounded-full flex items-center justify-center mb-4">
               <Mic2 className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
@@ -351,6 +356,11 @@ export default function MyRecords() {
                       alert(
                         "Phòng Jam chứa bản thu này đã bị xóa hoàn toàn khỏi hệ thống!",
                       );
+                      return;
+                    }
+                    // Draft thuộc phòng đã bị archived → chuyển sang chế độ orphaned
+                    if (record.status === "draft" && record.project_id?.status === "archived") {
+                      window.location.href = `/jam-room?id=${record.project_id._id}&draftId=${record._id}&orphaned=true`;
                       return;
                     }
                     if (record.status === "draft") {
@@ -424,7 +434,7 @@ export default function MyRecords() {
             <PaginationControls
               currentPage={myRecordsPage}
               setPage={setMyRecordsPage}
-              totalItems={myRecords.length}
+              totalItems={activeRecords.length}
             />
           </div>
         )}
