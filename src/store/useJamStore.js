@@ -67,6 +67,29 @@ export const useJamStore = create((set, get) => ({
 
   togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
 
+  fetchJamRoomPublic: async (roomId) => {
+    set({ isLoadingRoom: true, errorMsg: null });
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/jams/${roomId}/public`);
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.message || "Không thể tải phòng Jam");
+
+      set({
+        activeRoom: {
+          ...data,
+          sheetUrls: data.sheetUrls || data.sheet_music_id?.file_urls || data.file_urls || []
+        },
+        currentTracks: data.tracks,
+        isPlaying: false,
+        isLoadingRoom: false,
+      });
+    } catch (error) {
+      console.error(error);
+      set({ errorMsg: error.message, isLoadingRoom: false });
+    }
+  },
+
   setPendingTrackId: (trackId) => set({ pendingTrackId: trackId }),
 
   changeActiveRecord: (trackId, recordId) => {

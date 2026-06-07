@@ -41,7 +41,7 @@ const getUserIdFromToken = () => {
   }
 };
 
-export default function MixerBoard() {
+export default function MixerBoard({ isGuest = false }) {
   const currentUserId = getUserIdFromToken();
   const {
     activeRoom,
@@ -368,20 +368,22 @@ export default function MixerBoard() {
               </p>
             </div>
           </div>
-          <Button
-            variant="default"
-            size="sm"
-            className="sm:hidden gap-1.5 shadow-md h-9 px-3 text-xs rounded-xl"
-            onClick={handleSaveMix}
-            disabled={isSaving || isArchived}
-          >
-            {isSaving ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Download className="w-3.5 h-3.5" />
-            )}
-            Lưu Mix
-          </Button>
+          {!isGuest && (
+            <Button
+              variant="default"
+              size="sm"
+              className="sm:hidden gap-1.5 shadow-md h-9 px-3 text-xs rounded-xl"
+              onClick={handleSaveMix}
+              disabled={isSaving || isArchived}
+            >
+              {isSaving ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Download className="w-3.5 h-3.5" />
+              )}
+              Lưu Mix
+            </Button>
+          )}
         </div>
 
         <div className="flex flex-col items-center justify-center w-full sm:flex-1">
@@ -434,20 +436,22 @@ export default function MixerBoard() {
               className="w-full"
             />
           </div>
-          <Button
-            variant="default"
-            size="sm"
-            className="gap-2 shadow-md shadow-primary/20 h-10 rounded-md"
-            onClick={handleSaveMix}
-            disabled={isSaving || isArchived}
-          >
-            {isSaving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
-            Lưu Mix
-          </Button>
+          {!isGuest && (
+            <Button
+              variant="default"
+              size="sm"
+              className="gap-2 shadow-md shadow-primary/20 h-10 rounded-md"
+              onClick={handleSaveMix}
+              disabled={isSaving || isArchived}
+            >
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              Lưu Mix
+            </Button>
+          )}
         </div>
       </div>
 
@@ -461,6 +465,19 @@ export default function MixerBoard() {
         </div>
       )}
 
+      {isGuest && (
+        <div className="bg-primary/10 border-y border-primary/30 px-4 sm:px-6 py-2.5 flex items-center justify-center gap-2 sm:gap-3 shrink-0 z-20">
+          <span className="text-primary text-[11px] sm:text-sm font-medium">
+            🎧 Bạn đang xem ở chế độ khách —
+          </span>
+          <a
+            href="/login"
+            className="text-primary text-[11px] sm:text-sm font-bold hover:underline"
+          >
+            Đăng nhập để tham gia Jam
+          </a>
+        </div>
+      )}
       {/* KHU VỰC MIXER (Track + Waveform) */}
       <div className="flex flex-1 overflow-hidden relative">
         <div className="w-40 sm:w-72 border-r border-border bg-background flex flex-col z-10 overflow-y-auto shrink-0 shadow-[2px_0_10px_rgba(0,0,0,0.05)] sm:shadow-[4px_0_15px_rgba(0,0,0,0.1)]">
@@ -499,7 +516,7 @@ export default function MixerBoard() {
                       </div>
                     </div>
 
-                    {!isArchived && (
+                    {!isArchived && !isGuest && (
                       <div
                         className="absolute top-1.5 sm:top-2 right-1.5 sm:right-2 z-40 flex items-center justify-end bg-white/80 dark:bg-white/20 backdrop-blur-md border border-black/10 dark:border-white/20 hover:bg-foreground hover:text-background rounded-full h-6 w-6 sm:h-8 sm:w-8 overflow-hidden transition-all duration-300 sm:hover:w-[110px] sm:hover:bg-white sm:dark:hover:bg-white sm:hover:text-black cursor-pointer shadow-md group/add"
                         onClick={(e) => {
@@ -542,7 +559,7 @@ export default function MixerBoard() {
                           Chọn bản thu
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        {track.records.map((record) => (
+                        {(isGuest ? track.records.slice(-3) : track.records).map((record) => (
                           <DropdownMenuItem
                             key={record.id}
                             onSelect={(e) => {
@@ -560,6 +577,17 @@ export default function MixerBoard() {
                             )}
                           </DropdownMenuItem>
                         ))}
+                        {isGuest && track.records.length > 3 && (
+                          <DropdownMenuItem
+                            onSelect={(e) => {
+                              e.preventDefault();
+                              window.location.href = "/login";
+                            }}
+                            className="cursor-pointer text-center py-2.5 text-primary hover:text-primary font-semibold justify-center border-t border-border/50 mt-1"
+                          >
+                            <span className="text-xs sm:text-sm">🔒 Đăng nhập để nghe đầy đủ</span>
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
 
@@ -612,7 +640,7 @@ export default function MixerBoard() {
               </Card>
             ))}
             <div className="pt-1 pb-4">
-              {!isArchived &&
+              {!isArchived && !isGuest &&
                 (isAddingTrack ? (
                   <div className="flex flex-col gap-2 bg-muted/30 p-2 sm:p-2.5 rounded-lg border border-border shadow-inner animate-in fade-in zoom-in-95 duration-200">
                     <input
@@ -726,7 +754,7 @@ export default function MixerBoard() {
         </div>
       </div>
 
-      {recordingTrack && (
+      {recordingTrack && !isGuest && (
         <RecordingModal
           activeRoom={activeRoom}
           recordingTrack={recordingTrack}

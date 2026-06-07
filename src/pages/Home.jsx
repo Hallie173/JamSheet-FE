@@ -17,6 +17,9 @@ import {
   Piano,
   Headphones,
   Loader2,
+  Upload,
+  UserPlus,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,6 +57,7 @@ export default function Home() {
   const [recentProjects, setRecentProjects] = useState([]);
   const [trendingJams, setTrendingJams] = useState([]);
   const [needsYouJams, setNeedsYouJams] = useState([]);
+  const [communityStats, setCommunityStats] = useState(null);
   const [isLoadingDrafts, setIsLoadingDrafts] = useState(false);
   const [isLoadingTrending, setIsLoadingTrending] = useState(false);
   const [isLoadingNeedsYou, setIsLoadingNeedsYou] = useState(false);
@@ -129,11 +133,24 @@ export default function Home() {
       }
     };
 
+    const fetchCommunityStats = async () => {
+      try {
+        const res = await fetch(getApiUrl(API_ENDPOINTS.JAMS_STATS));
+        if (res.ok) {
+          const data = await res.json();
+          setCommunityStats(data);
+        }
+      } catch (error) {
+        console.error("Lỗi tải thống kê:", error);
+      }
+    };
+
     if (isLoggedIn) {
       fetchRecentDrafts();
       fetchNeedsYou();
     }
     fetchTrendingJams();
+    fetchCommunityStats();
   }, [isLoggedIn]);
 
   const decorativeIcons = [
@@ -164,6 +181,34 @@ export default function Home() {
 
   const CurrentDecorativeIcon = decorativeIcons[iconIndex];
 
+  // Steps cho section "Cách JamSheet hoạt động"
+  const howItWorksSteps = [
+    {
+      icon: Upload,
+      title: "Tải nhạc phổ lên",
+      description: "Chọn bản nhạc yêu thích từ thư viện hoặc tải lên bản nhạc phổ của riêng bạn.",
+      color: "text-blue-500",
+      bgColor: "bg-blue-500/10",
+      borderColor: "border-blue-500/20",
+    },
+    {
+      icon: UserPlus,
+      title: "Mời nhạc công tham gia",
+      description: "Tạo phòng Jam, thiết lập các kệ nhạc cụ và chờ cộng đồng góp bản thu.",
+      color: "text-emerald-500",
+      bgColor: "bg-emerald-500/10",
+      borderColor: "border-emerald-500/20",
+    },
+    {
+      icon: Layers,
+      title: "Thu âm & hợp nhất",
+      description: "Mỗi nhạc công thu âm phần của mình. Bàn Mixer sẽ ghép tất cả thành một bản phối hoàn chỉnh.",
+      color: "text-violet-500",
+      bgColor: "bg-violet-500/10",
+      borderColor: "border-violet-500/20",
+    },
+  ];
+
   return (
     <div className="flex flex-col space-y-10 pb-10 px-4 sm:px-0">
       {/* PHẦN 1: LỜI CHÀO */}
@@ -177,7 +222,7 @@ export default function Home() {
           <p className="text-muted-foreground text-base sm:text-lg">
             {isLoggedIn
               ? "Sẵn sàng để hòa âm chưa? Hôm nay bạn muốn bắt đầu một dự án mới hay đóng góp vào các phòng Jam của cộng đồng?"
-              : "Trở thành một phần của cộng đồng nhạc công không giới hạn. Đăng nhập ngay để tạo phòng Jam, đóng góp bản thu và giao lưu cùng mọi người."}
+              : "Nơi các nhạc công gặp nhau, cùng thu âm từ xa và tạo ra những bản phối tuyệt vời. Tham gia cộng đồng không giới hạn ngay hôm nay!"}
           </p>
           <div className="pt-4 flex flex-col sm:flex-row gap-3 sm:gap-4">
             {isLoggedIn ? (
@@ -204,12 +249,86 @@ export default function Home() {
               </>
             )}
           </div>
+
+          {/* SỐ LIỆU CỘNG ĐỒNG */}
+          {!isLoggedIn && communityStats && (
+            <div className="pt-6 flex flex-wrap gap-6 sm:gap-10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground">{communityStats.totalMusicians}+</p>
+                  <p className="text-xs text-muted-foreground">Nhạc công</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                  <Mic2 className="w-5 h-5 text-emerald-500" />
+                </div>
+                <div>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground">{communityStats.totalRecords}+</p>
+                  <p className="text-xs text-muted-foreground">Bản thu</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-full bg-violet-500/10 flex items-center justify-center">
+                  <Music className="w-5 h-5 text-violet-500" />
+                </div>
+                <div>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground">{communityStats.totalRooms}+</p>
+                  <p className="text-xs text-muted-foreground">Phòng Jam</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         <CurrentDecorativeIcon
           key={iconIndex}
           className="absolute -right-10 -bottom-10 w-48 h-48 sm:w-64 sm:h-64 text-primary/5 rotate-12 shrink-0 animate-in fade-in duration-1000 zoom-in-95"
         />
       </div>
+
+      {/* PHẦN 1.5: CÁCH JAMSHEET HOẠT ĐỘNG (chỉ cho khách) */}
+      {!isLoggedIn && (
+        <section className="space-y-6">
+          <div className="flex items-center gap-2">
+            <Headphones className="w-5 h-5 text-primary" />
+            <h2 className="text-xl sm:text-2xl font-bold">
+              Cách JamSheet hoạt động
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+            {howItWorksSteps.map((step, index) => {
+              const StepIcon = step.icon;
+              return (
+                <Card
+                  key={index}
+                  className={`relative overflow-hidden border ${step.borderColor} bg-card/50 rounded-2xl sm:rounded-xl shadow-xl sm:shadow-sm hover:shadow-lg transition-all duration-300 group`}
+                >
+                  <CardContent className="p-6 sm:p-8 flex flex-col items-center text-center space-y-4">
+                    {/* Số thứ tự */}
+                    <div className="absolute top-3 right-4 text-6xl sm:text-7xl font-black text-muted/10 select-none leading-none">
+                      {index + 1}
+                    </div>
+
+                    <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl ${step.bgColor} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                      <StepIcon className={`w-7 h-7 sm:w-8 sm:h-8 ${step.color}`} />
+                    </div>
+
+                    <h3 className="text-lg sm:text-xl font-bold text-foreground">
+                      {step.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {step.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* PHẦN 2: TIẾP TỤC CÔNG VIỆC */}
       {isLoggedIn && (
@@ -316,6 +435,12 @@ export default function Home() {
                   <div className="w-12 h-12 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
                     <Play className="w-5 h-5 ml-1 text-primary" />
                   </div>
+                  {/* Badge cho khách chưa đăng nhập */}
+                  {!isLoggedIn && (
+                    <div className="absolute bottom-2 right-2 bg-background/80 backdrop-blur-sm text-[10px] sm:text-xs font-medium text-muted-foreground px-2 py-1 rounded-md border border-border/50">
+                      👀 Xem trước
+                    </div>
+                  )}
                 </div>
                 <CardContent className="p-4">
                   <div className="flex gap-2 mb-3 flex-wrap">

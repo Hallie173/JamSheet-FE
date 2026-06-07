@@ -6,7 +6,7 @@ import MixerBoard from "@/components/Jam/MixerBoard";
 export default function JamRoom() {
   const isLoggedIn = !!localStorage.getItem("token");
   // Lấy thêm currentTracks và changeActiveRecord để tự động chọn nhạc cụ
-  const { fetchJamRoomData, currentTracks, changeActiveRecord } = useJamStore();
+  const { fetchJamRoomData, fetchJamRoomPublic, currentTracks, changeActiveRecord } = useJamStore();
 
   const params = new URLSearchParams(window.location.search);
   const roomId = params.get("id");
@@ -14,10 +14,15 @@ export default function JamRoom() {
 
   // 1. Gọi API tải dữ liệu phòng Jam
   useEffect(() => {
-    if (isLoggedIn && roomId) {
-      fetchJamRoomData(roomId);
+    if (roomId) {
+      if (isLoggedIn) {
+        fetchJamRoomData(roomId);
+      } else {
+        // Khách chưa đăng nhập → dùng endpoint public
+        fetchJamRoomPublic(roomId);
+      }
     }
-  }, [isLoggedIn, roomId, fetchJamRoomData]);
+  }, [isLoggedIn, roomId, fetchJamRoomData, fetchJamRoomPublic]);
 
   // 2. LOGIC MỚI: Tự động chọn bản thu khi URL có chứa trackId
   useEffect(() => {
@@ -35,11 +40,31 @@ export default function JamRoom() {
     }
   }, [trackId, currentTracks, changeActiveRecord]);
 
-  if (!isLoggedIn) return <div className="p-10 text-center">Vui lòng đăng nhập...</div>;
+  // Khách chưa đăng nhập: Nếu có roomId → hiển thị MixerBoard ở chế độ xem
+  // Nếu không có roomId → không cho vào Lobby
+  if (!isLoggedIn) {
+    if (!roomId) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full gap-4 p-10">
+          <h2 className="text-2xl font-bold text-foreground">Bạn cần đăng nhập</h2>
+          <p className="text-muted-foreground text-center max-w-md">
+            Sảnh Hợp Tấu chỉ dành cho thành viên. Hãy đăng nhập để tạo và quản lý các phòng Jam của bạn.
+          </p>
+          <a href="/login">
+            <button className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:opacity-90 transition-opacity">
+              Đăng nhập ngay
+            </button>
+          </a>
+        </div>
+      );
+    }
+    // Có roomId → hiển thị MixerBoard ở chế độ khách (isGuest=true)
+    return <MixerBoard isGuest={true} />;
+  }
 
   // Nếu không có ID trên URL -> Hiển thị Sảnh chờ
   if (!roomId) return <JamLobby />;
 
   // Nếu có ID -> Hiển thị Bàn Mixer chính
-  return <MixerBoard />;
+  return <MixerBoard isGuest={false} />;
 }

@@ -16,6 +16,8 @@ export const API_ENDPOINTS = {
   JAMS_MY_TRACKS: "/api/jams/my-tracks",
   JAMS_TOP_TRACKS: "/api/jams/top-tracks",
   JAMS_NEEDS_YOU: "/api/jams/needs-you",
+  JAMS_STATS: "/api/jams/stats",
+  JAMS_PUBLIC: (id) => `/api/jams/${id}/public`,
   JAMS_ORPHANED_DRAFTS: "/api/jams/orphaned-drafts",
   JAMS_TRACK_DELETE: (trackId) => `/api/jams/tracks/${trackId}`,
 
