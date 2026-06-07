@@ -402,15 +402,15 @@ export default function SheetsLibrary() {
 
   const handleJoinJam = async (e, sheetId) => {
     e.stopPropagation();
-    if (!isLoggedIn) return alert("Vui lòng đăng nhập để tham gia Jam!");
 
     try {
+      const headers = {};
       const token = localStorage.getItem("token");
+      if (token) headers.Authorization = `Bearer ${token}`;
+
       const res = await fetch(
         `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/jams/find-by-sheet/${sheetId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
+        { headers },
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
