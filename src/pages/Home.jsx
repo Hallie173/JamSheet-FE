@@ -489,7 +489,7 @@ export default function Home() {
                 Cộng đồng đang cần bạn
               </h2>
             </div>
-            <a href="/lobby">
+            <a href="/jam-room">
               <Button
                 variant="ghost"
                 className="h-10 px-3 sm:px-4 text-xs sm:text-sm text-muted-foreground hover:text-foreground rounded-xl sm:rounded-md"
