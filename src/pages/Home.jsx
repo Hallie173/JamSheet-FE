@@ -186,7 +186,7 @@ export default function Home() {
     {
       icon: Upload,
       title: "Tải nhạc phổ lên",
-      description: "Chọn bản nhạc yêu thích từ thư viện hoặc tải lên bản nhạc phổ của riêng bạn.",
+      description: "Tải lên bản nhạc phổ của riêng bạn.",
       color: "text-blue-500",
       bgColor: "bg-blue-500/10",
       borderColor: "border-blue-500/20",
@@ -202,7 +202,7 @@ export default function Home() {
     {
       icon: Layers,
       title: "Thu âm & hợp nhất",
-      description: "Mỗi nhạc công thu âm phần của mình. Bàn Mixer sẽ ghép tất cả thành một bản phối hoàn chỉnh.",
+      description: "Nghe bản phối do chính bạn và cộng đồng cùng chung sức.",
       color: "text-violet-500",
       bgColor: "bg-violet-500/10",
       borderColor: "border-violet-500/20",
@@ -550,11 +550,10 @@ export default function Home() {
                         return (
                           <span
                             key={inst}
-                            className={`text-[10px] sm:text-xs font-semibold px-2.5 py-1 rounded-md flex items-center gap-1.5 border ${
-                              isMatch
+                            className={`text-[10px] sm:text-xs font-semibold px-2.5 py-1 rounded-md flex items-center gap-1.5 border ${isMatch
                                 ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                                 : "bg-muted/50 text-muted-foreground border-border"
-                            }`}
+                              }`}
                           >
                             <Disc className="w-3 h-3" />
                             {inst}
