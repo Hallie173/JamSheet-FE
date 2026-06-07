@@ -60,6 +60,7 @@ export default function MixerBoard({ isGuest = false }) {
   } = useJamStore();
 
   const isArchived = activeRoom?.status === "archived";
+  const isOwner = !!currentUserId && currentUserId === activeRoom?.ownerId;
 
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [playbackTime, setPlaybackTime] = useState(0);
@@ -640,7 +641,7 @@ export default function MixerBoard({ isGuest = false }) {
               </Card>
             ))}
             <div className="pt-1 pb-4">
-              {!isArchived && !isGuest &&
+              {!isArchived && isOwner &&
                 (isAddingTrack ? (
                   <div className="flex flex-col gap-2 bg-muted/30 p-2 sm:p-2.5 rounded-lg border border-border shadow-inner animate-in fade-in zoom-in-95 duration-200">
                     <input
