@@ -99,6 +99,9 @@ export default function Header() {
   const hasUnread = notifications.some((notif) => !notif.is_read);
 
   const handleNotificationClick = async (notif) => {
+    // Đóng Popover trước khi điều hướng
+    setIsPopoverOpen(false);
+
     if (!notif.is_read) {
       setNotifications(
         notifications.map((n) =>
@@ -119,7 +122,6 @@ export default function Header() {
         console.error(error);
       }
     }
-    // Đã sửa: Dùng target_link chính xác của thông báo
     if (notif.target_link) {
       navigate(notif.target_link);
     }

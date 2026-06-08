@@ -1,14 +1,15 @@
 import React, { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { useJamStore } from "@/store/useJamStore";
 import JamLobby from "@/components/Jam/JamLobby";
 import MixerBoard from "@/components/Jam/MixerBoard";
 
 export default function JamRoom() {
   const isLoggedIn = !!localStorage.getItem("token");
-  // Lấy thêm currentTracks và changeActiveRecord để tự động chọn nhạc cụ
+  const location = useLocation(); // ← dùng hook, tự re-render khi URL thay đổi
   const { fetchJamRoomData, fetchJamRoomPublic, currentTracks, changeActiveRecord } = useJamStore();
 
-  const params = new URLSearchParams(window.location.search);
+  const params = new URLSearchParams(location.search); // ← đọc từ hook thay vì window
   const roomId = params.get("id");
   const trackId = params.get("trackId");
 
