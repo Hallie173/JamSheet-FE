@@ -735,7 +735,7 @@ export default function SheetsLibrary() {
           </p>
         </CardHeader>
 
-        <CardFooter className="p-2 sm:p-3 pt-2 shrink-0 flex items-center justify-between text-muted-foreground border-t border-border/50 mt-auto">
+        <CardFooter className="p-2 sm:p-3 pt-2 shrink-0 flex items-center text-muted-foreground border-t border-border/50 mt-auto">
           <div
             className="flex items-center gap-1 text-[10px] sm:text-xs cursor-pointer group/like p-1 -ml-1 rounded-md hover:bg-destructive/10 transition-colors"
             onClick={(e) => handleToggleLike(e, sheet.id)}
@@ -746,11 +746,6 @@ export default function SheetsLibrary() {
             <span className={isLiked ? "text-destructive font-medium" : ""}>
               {likeCount}
             </span>
-          </div>
-
-          <div className="flex items-center gap-1 text-[10px] sm:text-xs">
-            <Users className="w-3.5 h-3.5" />{" "}
-            <span>{sheet.contributors_count}</span>
           </div>
         </CardFooter>
       </Card>
