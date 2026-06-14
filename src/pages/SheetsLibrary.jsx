@@ -120,11 +120,11 @@ export default function SheetsLibrary() {
       const timestamp = new Date().getTime();
       const queryString = params.toString();
 
-      // Chỉ dùng query string nếu đây là navigation từ Header (có location.key)
-      // Khi reload, location.key = 'default' → bỏ qua query, load explore bình thường
-      const isReload = location.key === "default";
-      const effectiveQuery = isReload ? "" : queryString;
-
+      // Dùng performance.navigation để phân biệt reload (type=1) vs navigate bình thường
+      // Đây là cách đáng tin cậy hơn location.key vì hoạt động với cả BrowserRouter
+      const isPageReload = performance.navigation?.type === 1
+        || performance.getEntriesByType?.("navigation")?.[0]?.type === "reload";
+      const effectiveQuery = isPageReload ? "" : queryString;
       const endpoint = effectiveQuery
         ? `${baseUrl}/api/sheets/search?${effectiveQuery}&t=${timestamp}`
         : `${baseUrl}/api/sheets/explore?t=${timestamp}`;
@@ -147,7 +147,7 @@ export default function SheetsLibrary() {
     } catch (error) {
       console.error(error);
     }
-  }, [location.search, location.key]);
+  }, [location.search]);
 
   // 2. Dùng useCallback bọc lại hàm fetch cá nhân
   const fetchMySheets = useCallback(async () => {
@@ -1003,13 +1003,21 @@ export default function SheetsLibrary() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Thể loại</Label>
-                  <Input
-                    placeholder="Pop, Jazz..."
+                  <select
+                    className="w-full h-10 text-sm border border-input rounded-md bg-background px-3 focus:outline-none focus:ring-1 focus:ring-ring"
                     value={uploadData.genre}
                     onChange={(e) =>
                       setUploadData({ ...uploadData, genre: e.target.value })
                     }
-                  />
+                  >
+                    <option value="">-- Chọn thể loại --</option>
+                    <option value="Pop">Pop</option>
+                    <option value="Rock">Rock</option>
+                    <option value="Acoustic">Acoustic</option>
+                    <option value="Jazz">Jazz</option>
+                    <option value="Classical">Classical</option>
+                    <option value="Other">Khác</option>
+                  </select>
                 </div>
                 <div className="space-y-2">
                   <Label>Tempo (BPM) *</Label>
