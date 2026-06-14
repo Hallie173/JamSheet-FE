@@ -408,6 +408,10 @@ export default function MyRecords() {
                     >
                       {record.project_id?.title || "Dự án không xác định"}
                     </p>
+                    {/* Tên người thu âm */}
+                    <p className="text-[10px] sm:text-xs text-muted-foreground/70 truncate mt-0.5">
+                      {record.user_id?.username || record.user_id?.name || "Nhạc công"}
+                    </p>
 
                     <div className="mt-auto pt-2 sm:pt-3 flex items-center justify-between">
                       <span
@@ -415,14 +419,11 @@ export default function MyRecords() {
                       >
                         {record.instrument}
                       </span>
-                      <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-muted-foreground shrink-0">
-                        <span>{formatDuration(record.duration)}</span>
-                        <div className="flex items-center gap-1">
-                          <Heart className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-destructive" />
-                          <span>
-                            {record.liked_by?.length || record.likes_count || 0}
-                          </span>
-                        </div>
+                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground shrink-0">
+                        <Heart className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-destructive" />
+                        <span>
+                          {record.liked_by?.length || record.likes_count || 0}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -491,18 +492,19 @@ export default function MyRecords() {
                     >
                       {record.project_id?.title || "Dự án không xác định"}
                     </p>
+                    {/* Tên người thu âm */}
+                    <p className="text-[10px] sm:text-xs text-muted-foreground/70 truncate mt-0.5">
+                      {record.user_id?.username || record.user_id?.name || "Nhạc công"}
+                    </p>
                     <div className="mt-auto pt-2 sm:pt-3 flex items-center justify-between">
                       <span className="text-[9px] sm:text-[10px] uppercase tracking-wider font-semibold bg-secondary text-secondary-foreground px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-sm sm:rounded-md max-w-[60px] sm:max-w-none truncate">
                         {record.instrument}
                       </span>
-                      <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-muted-foreground shrink-0">
-                        <span>{formatDuration(record.duration)}</span>
-                        <div className="flex items-center gap-1">
-                          <Heart className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-destructive fill-current" />
-                          <span className="font-bold text-foreground">
-                            {record.likes_count || 0}
-                          </span>
-                        </div>
+                      <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground shrink-0">
+                        <Heart className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-destructive fill-current" />
+                        <span className="font-bold text-foreground">
+                          {record.likes_count || 0}
+                        </span>
                       </div>
                     </div>
                   </div>
