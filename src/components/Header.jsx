@@ -80,8 +80,8 @@ export default function Header() {
     if (selectedGenres.length > 0)
       params.append("genre", selectedGenres.join(","));
 
-    // Đã sửa: Dùng navigate để chuyển trang mượt mà không tải lại trang
-    navigate(`/sheets-library?${params.toString()}`);
+    // Đưa query vào URL để SheetsLibrary đọc, dùng replace để không tạo history entry thừa
+    navigate(`/sheets-library?${params.toString()}`, { replace: true });
   };
 
   const toggleFilter = (item, type) => {

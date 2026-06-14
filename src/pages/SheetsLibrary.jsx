@@ -83,27 +83,25 @@ export default function SheetsLibrary() {
     required_instruments: "",
   });
 
-  // 1. Dùng useCallback bọc lại hàm fetch cộng đồng
+  // 1. Fetch explore: xử lý cả tìm kiếm thông thường và notification (sheet_id)
   const fetchExploreSheets = useCallback(async () => {
     try {
       const params = new URLSearchParams(location.search);
       const sheetId = params.get("sheet_id");
 
-      // Nếu URL có ?sheet_id= (từ notification), kiểm tra sheet theo ID
       if (sheetId) {
+        // Từ notification → tìm sheet theo ID
         const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
         const res = await fetch(`${baseUrl}/api/sheets/${sheetId}`, {
           headers: { "Cache-Control": "no-cache" },
         });
         if (res.ok) {
           const data = await res.json();
-          // Sheet còn tồn tại và không bị frozen → hiển thị trong explore
           setNotifSheetError(null);
           setNotifSheetFound(formatSheetData(data));
           setExploreSheets([formatSheetData(data)]);
           setExploreSheetsPage(1);
         } else {
-          // Sheet bị frozen hoặc không tồn tại
           setNotifSheetError("not_found");
           setNotifSheetFound(null);
           setExploreSheets([]);
@@ -116,45 +114,40 @@ export default function SheetsLibrary() {
         return;
       }
 
-      // Trường hợp tìm kiếm thông thường
       setNotifSheetError(null);
       setNotifSheetFound(null);
-      const queryString = params.toString();
       const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
       const timestamp = new Date().getTime();
+      const queryString = params.toString();
 
-      const endpoint = queryString
-        ? `${baseUrl}/api/sheets/search?${queryString}&t=${timestamp}`
+      // Chỉ dùng query string nếu đây là navigation từ Header (có location.key)
+      // Khi reload, location.key = 'default' → bỏ qua query, load explore bình thường
+      const isReload = location.key === "default";
+      const effectiveQuery = isReload ? "" : queryString;
+
+      const endpoint = effectiveQuery
+        ? `${baseUrl}/api/sheets/search?${effectiveQuery}&t=${timestamp}`
         : `${baseUrl}/api/sheets/explore?t=${timestamp}`;
 
       const res = await fetch(endpoint, {
-        headers: {
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-        },
+        headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
       });
       const data = await res.json();
       if (res.ok) {
         setExploreSheets(data.map(formatSheetData));
         setExploreSheetsPage(1);
-
-        if (queryString) {
+        if (effectiveQuery) {
           setTimeout(() => {
             if (exploreRef.current) {
-              exploreRef.current.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              });
+              exploreRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
             }
           }, 100);
-          // Dọn URL params sau khi fetch xong để reload không bị kẹt kết quả cũ
-          navigate("/sheets-library", { replace: true });
         }
       }
     } catch (error) {
       console.error(error);
     }
-  }, [location.search, navigate]); // Theo dõi location.search ở đây
+  }, [location.search, location.key]);
 
   // 2. Dùng useCallback bọc lại hàm fetch cá nhân
   const fetchMySheets = useCallback(async () => {
