@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Search,
   SlidersHorizontal,
@@ -20,7 +20,8 @@ import whiteLogo from "@/assets/white-logo.png";
 import { getApiUrl, API_ENDPOINTS } from "@/lib/constants";
 
 export default function Header() {
-  const navigate = useNavigate(); // Khởi tạo Hook chuyển trang
+  const navigate = useNavigate();
+  const location = useLocation(); // Hook lấy URL hiện tại
   const isLoggedIn = !!localStorage.getItem("token");
 
   const instruments = [
@@ -41,6 +42,17 @@ export default function Header() {
 
   const [notifications, setNotifications] = useState([]);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false); // Quản lý Popover Bộ lọc
+
+  // Đồng bộ State với URL params khi người dùng reload hoặc back/forward (Lỗi 1)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    setSearchQuery(params.get("q") || "");
+    const inst = params.get("inst");
+    setSelectedInsts(inst ? inst.split(",").filter(Boolean) : []);
+    const genre = params.get("genre");
+    setSelectedGenres(genre ? genre.split(",").filter(Boolean) : []);
+  }, [location.search]);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -66,13 +78,7 @@ export default function Header() {
   }, [isLoggedIn]);
 
   const handleSearch = () => {
-    if (
-      !searchQuery.trim() &&
-      selectedInsts.length === 0 &&
-      selectedGenres.length === 0
-    ) {
-      return;
-    }
+    // Không dùng return sớm nữa, luôn cho phép search kể cả khi clear query
     const params = new URLSearchParams();
     if (searchQuery.trim()) params.append("q", searchQuery.trim());
     if (selectedInsts.length > 0)
@@ -80,8 +86,19 @@ export default function Header() {
     if (selectedGenres.length > 0)
       params.append("genre", selectedGenres.join(","));
 
-    // Đưa query vào URL để SheetsLibrary đọc, dùng replace để không tạo history entry thừa
-    navigate(`/sheets-library?${params.toString()}`, { replace: true });
+    setIsFilterOpen(false); // Đóng popover chuẩn xác
+    navigate(`/sheets-library?${params.toString()}`);
+  };
+
+  const handleClearFilters = () => {
+    setSelectedInsts([]);
+    setSelectedGenres([]);
+    setIsFilterOpen(false);
+
+    // Tự động search lại với query hiện tại nhưng không có filter (Lỗi 2)
+    const params = new URLSearchParams();
+    if (searchQuery.trim()) params.append("q", searchQuery.trim());
+    navigate(`/sheets-library?${params.toString()}`);
   };
 
   const toggleFilter = (item, type) => {
@@ -99,9 +116,7 @@ export default function Header() {
   const hasUnread = notifications.some((notif) => !notif.is_read);
 
   const handleNotificationClick = async (notif) => {
-    // Đóng Popover trước khi điều hướng
     setIsPopoverOpen(false);
-
     if (!notif.is_read) {
       setNotifications(
         notifications.map((n) =>
@@ -225,16 +240,18 @@ export default function Header() {
             />
           </div>
 
+          {/* Nút Tìm kiếm hiển thị dạng Icon trên Mobile (Lỗi 9) */}
           <Button
             variant="secondary"
-            className="hidden sm:flex h-10 shrink-0 font-medium rounded-md"
+            className="flex h-12 w-12 sm:w-auto sm:h-10 shrink-0 font-medium rounded-xl sm:rounded-md p-0 sm:px-4 items-center justify-center"
             onClick={handleSearch}
           >
-            Tìm kiếm
+            <Search className="h-5 w-5 sm:hidden" />
+            <span className="hidden sm:inline">Tìm kiếm</span>
           </Button>
 
           {/* BỘ LỌC */}
-          <Popover>
+          <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -259,10 +276,7 @@ export default function Header() {
                   {(selectedInsts.length > 0 || selectedGenres.length > 0) && (
                     <button
                       className="text-sm sm:text-xs text-muted-foreground hover:text-primary font-medium"
-                      onClick={() => {
-                        setSelectedInsts([]);
-                        setSelectedGenres([]);
-                      }}
+                      onClick={handleClearFilters}
                     >
                       Xóa lọc
                     </button>
@@ -324,12 +338,10 @@ export default function Header() {
                   </div>
                 </div>
 
+                {/* Sửa cách trigger tìm kiếm (Lỗi 3) */}
                 <Button
                   className="w-full mt-4 h-12 sm:h-10 text-base sm:text-sm rounded-xl sm:rounded-md"
-                  onClick={() => {
-                    document.body.click();
-                    handleSearch();
-                  }}
+                  onClick={handleSearch}
                 >
                   Áp dụng & Tìm kiếm
                 </Button>
@@ -398,11 +410,10 @@ export default function Header() {
                   <div
                     key={notif._id}
                     onClick={() => handleNotificationClick(notif)}
-                    className={`flex items-start gap-3 p-3 mx-2 my-1 sm:my-0.5 rounded-xl sm:rounded-lg cursor-pointer transition-all ${
-                      notif.is_read
+                    className={`flex items-start gap-3 p-3 mx-2 my-1 sm:my-0.5 rounded-xl sm:rounded-lg cursor-pointer transition-all ${notif.is_read
                         ? "bg-transparent hover:bg-muted/50 opacity-70"
                         : "bg-primary/10 hover:bg-primary/15"
-                    }`}
+                      }`}
                   >
                     {notif.sender_avatar ? (
                       <Avatar className="w-12 h-12 sm:w-10 sm:h-10 shrink-0 border border-border/50 shadow-sm">

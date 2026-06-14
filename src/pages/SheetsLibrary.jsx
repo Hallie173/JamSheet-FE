@@ -13,6 +13,7 @@ import {
   ChevronRight,
   FileText,
   PlayCircle,
+  FilterX
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,14 +46,12 @@ export default function SheetsLibrary() {
   const [editingSheetId, setEditingSheetId] = useState(null);
   const exploreRef = useRef(null);
 
-  // Trạng thái khi notification dẫn đến sheet đã bị frozen/xóa
-  const [notifSheetError, setNotifSheetError] = useState(null); // null | 'not_found' | 'ok'
-  const [notifSheetFound, setNotifSheetFound] = useState(null); // sheet object nếu tìm thấy
+  const [notifSheetError, setNotifSheetError] = useState(null);
+  const [notifSheetFound, setNotifSheetFound] = useState(null);
 
-  // --- PAGINATION STATES ---
   const [mySheetsPage, setMySheetsPage] = useState(1);
   const [exploreSheetsPage, setExploreSheetsPage] = useState(1);
-  const ITEMS_PER_PAGE = 8; // 4 cột x 2 dòng trên desktop
+  const ITEMS_PER_PAGE = 8;
 
   const [editFormData, setEditFormData] = useState({
     title: "",
@@ -83,14 +82,12 @@ export default function SheetsLibrary() {
     required_instruments: "",
   });
 
-  // 1. Fetch explore: xử lý cả tìm kiếm thông thường và notification (sheet_id)
   const fetchExploreSheets = useCallback(async () => {
     try {
       const params = new URLSearchParams(location.search);
       const sheetId = params.get("sheet_id");
 
       if (sheetId) {
-        // Từ notification → tìm sheet theo ID
         const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
         const res = await fetch(`${baseUrl}/api/sheets/${sheetId}`, {
           headers: { "Cache-Control": "no-cache" },
@@ -120,13 +117,9 @@ export default function SheetsLibrary() {
       const timestamp = new Date().getTime();
       const queryString = params.toString();
 
-      // Dùng performance.navigation để phân biệt reload (type=1) vs navigate bình thường
-      // Đây là cách đáng tin cậy hơn location.key vì hoạt động với cả BrowserRouter
-      const isPageReload = performance.navigation?.type === 1
-        || performance.getEntriesByType?.("navigation")?.[0]?.type === "reload";
-      const effectiveQuery = isPageReload ? "" : queryString;
-      const endpoint = effectiveQuery
-        ? `${baseUrl}/api/sheets/search?${effectiveQuery}&t=${timestamp}`
+      // Bỏ logic performance.navigation gây lỗi (Lỗi 6)
+      const endpoint = queryString
+        ? `${baseUrl}/api/sheets/search?${queryString}&t=${timestamp}`
         : `${baseUrl}/api/sheets/explore?t=${timestamp}`;
 
       const res = await fetch(endpoint, {
@@ -136,7 +129,7 @@ export default function SheetsLibrary() {
       if (res.ok) {
         setExploreSheets(data.map(formatSheetData));
         setExploreSheetsPage(1);
-        if (effectiveQuery) {
+        if (queryString) {
           setTimeout(() => {
             if (exploreRef.current) {
               exploreRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -149,7 +142,6 @@ export default function SheetsLibrary() {
     }
   }, [location.search]);
 
-  // 2. Dùng useCallback bọc lại hàm fetch cá nhân
   const fetchMySheets = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
@@ -171,7 +163,6 @@ export default function SheetsLibrary() {
     }
   }, []);
 
-  // 3. useEffect bây giờ cực kỳ gọn gàng và chuẩn xác
   useEffect(() => {
     fetchExploreSheets();
     if (isLoggedIn) fetchMySheets();
@@ -787,17 +778,30 @@ export default function SheetsLibrary() {
             Quản lý và chia sẻ các bản nhạc của bạn
           </p>
         </div>
-        <Button
-          className="flex items-center gap-2 w-full sm:w-auto h-12 sm:h-10 rounded-xl sm:rounded-md font-semibold"
-          onClick={() =>
-            isLoggedIn
-              ? setIsUploadModalOpen(true)
-              : (window.location.href = "/login")
-          }
-        >
-          <UploadCloud className="w-4 h-4" />
-          {isLoggedIn ? "Tải lên Nhạc phổ" : "Đăng nhập để Tải lên"}
-        </Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          {/* Nút Clear Filters hiển thị khi có tham số tìm kiếm (Lỗi 8) */}
+          {location.search.length > 0 && (
+            <Button
+              variant="outline"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 h-12 sm:h-10 rounded-xl sm:rounded-md border-destructive/30 text-destructive hover:bg-destructive/10"
+              onClick={() => navigate("/sheets-library")}
+            >
+              <FilterX className="w-4 h-4" />
+              Xem tất cả
+            </Button>
+          )}
+          <Button
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 h-12 sm:h-10 rounded-xl sm:rounded-md font-semibold"
+            onClick={() =>
+              isLoggedIn
+                ? setIsUploadModalOpen(true)
+                : (window.location.href = "/login")
+            }
+          >
+            <UploadCloud className="w-4 h-4" />
+            {isLoggedIn ? "Tải lên Nhạc phổ" : "Đăng nhập để Tải lên"}
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-4">
