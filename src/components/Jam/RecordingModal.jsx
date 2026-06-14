@@ -808,6 +808,9 @@ export default function RecordingModal({
               {recordingTrack.instrument}
             </strong>
           </p>
+          <p className="text-[9px] sm:text-[10px] text-muted-foreground/60 italic mt-1">
+            AI chỉ có thể hỗ trợ lọc một phần tạp âm, hãy chủ động lựa chọn môi trường thu âm yên tĩnh
+          </p>
         </div>
 
         <div
@@ -866,6 +869,10 @@ export default function RecordingModal({
                   </div>
                 </div>
               )}
+              {/* Dòng chú thích AI */}
+              <p className="text-[9px] sm:text-[10px] text-muted-foreground/60 italic text-center mt-1 px-2">
+                AI chỉ có thể hỗ trợ lọc một phần tạp âm, hãy chủ động lựa chọn môi trường thu âm yên tĩnh
+              </p>
             </div>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center">

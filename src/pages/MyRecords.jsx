@@ -34,7 +34,7 @@ export default function MyRecords() {
   // --- PAGINATION STATES ---
   const [myRecordsPage, setMyRecordsPage] = useState(1);
   const [exploreRecordsPage, setExploreRecordsPage] = useState(1);
-  const ITEMS_PER_PAGE = 6;
+  const ITEMS_PER_PAGE = 8; // 4 cột x 2 dòng trên desktop
 
   // Fetch dữ liệu khi vào trang
   useEffect(() => {

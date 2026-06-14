@@ -623,6 +623,53 @@ export default function SheetsLibrary() {
                 }
               />
             </div>
+            <div className="flex gap-2">
+              <div className="space-y-1 flex-1">
+                <Label className="text-[10px] sm:text-xs">Tempo (BPM) *</Label>
+                <Input
+                  size="sm"
+                  type="number"
+                  className="h-7 sm:h-8 text-[10px] sm:text-xs"
+                  value={editFormData.tempo}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, tempo: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-1 flex-1">
+                <Label className="text-[10px] sm:text-xs">Nhịp</Label>
+                <select
+                  className="w-full h-7 sm:h-8 text-[10px] sm:text-xs border border-input rounded-md bg-background px-2 focus:outline-none focus:ring-1 focus:ring-ring"
+                  value={editFormData.time_signature}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, time_signature: e.target.value })
+                  }
+                >
+                  <option value="4/4">4/4</option>
+                  <option value="3/4">3/4</option>
+                  <option value="6/8">6/8</option>
+                  <option value="2/4">2/4</option>
+                  <option value="12/8">12/8</option>
+                </select>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px] sm:text-xs">Thể loại</Label>
+              <select
+                className="w-full h-7 sm:h-8 text-[10px] sm:text-xs border border-input rounded-md bg-background px-2 focus:outline-none focus:ring-1 focus:ring-ring"
+                value={editFormData.genre}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, genre: e.target.value })
+                }
+              >
+                <option value="Pop">Pop</option>
+                <option value="Rock">Rock</option>
+                <option value="Acoustic">Acoustic</option>
+                <option value="Jazz">Jazz</option>
+                <option value="Classical">Classical</option>
+                <option value="Other">Khác</option>
+              </select>
+            </div>
             <div className="flex items-center gap-2 mt-auto pt-2">
               <Button
                 size="sm"
