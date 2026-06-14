@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Heart,
   Users,
@@ -33,6 +33,7 @@ const formatSheetData = (sheet) => ({
 
 export default function SheetsLibrary() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isLoggedIn = !!localStorage.getItem("token");
   const userStr = localStorage.getItem("user");
   const currentUser = userStr ? JSON.parse(userStr) : null;
@@ -51,7 +52,7 @@ export default function SheetsLibrary() {
   // --- PAGINATION STATES ---
   const [mySheetsPage, setMySheetsPage] = useState(1);
   const [exploreSheetsPage, setExploreSheetsPage] = useState(1);
-  const ITEMS_PER_PAGE = 6; // 3 dòng x 2 cột trên mobile
+  const ITEMS_PER_PAGE = 8; // 4 cột x 2 dòng trên desktop
 
   const [editFormData, setEditFormData] = useState({
     title: "",
@@ -146,12 +147,14 @@ export default function SheetsLibrary() {
               });
             }
           }, 100);
+          // Dọn URL params sau khi fetch xong để reload không bị kẹt kết quả cũ
+          navigate("/sheets-library", { replace: true });
         }
       }
     } catch (error) {
       console.error(error);
     }
-  }, [location.search]); // Theo dõi location.search ở đây
+  }, [location.search, navigate]); // Theo dõi location.search ở đây
 
   // 2. Dùng useCallback bọc lại hàm fetch cá nhân
   const fetchMySheets = useCallback(async () => {
