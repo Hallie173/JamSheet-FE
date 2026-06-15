@@ -430,14 +430,32 @@ export default function RecordingModal({
         audio: true,
         video: false,
       });
-      mediaRecorderRef.current = new MediaRecorder(stream);
+      // Chọn mimeType được browser hỗ trợ
+      const preferredTypes = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/ogg',
+      ];
+      const supportedMime = preferredTypes.find((t) =>
+        MediaRecorder.isTypeSupported(t)
+      ) || '';
+
+      mediaRecorderRef.current = new MediaRecorder(
+        stream,
+        supportedMime ? { mimeType: supportedMime } : undefined,
+      );
+      const actualMime = mediaRecorderRef.current.mimeType || 'audio/webm';
+
       mediaRecorderRef.current.ondataavailable = (event) => {
-        if (event.data.size > 0) audioChunksRef.current.push(event.data);
+        if (event.data && event.data.size > 0)
+          audioChunksRef.current.push(event.data);
       };
 
       mediaRecorderRef.current.onstop = () => {
+        // Dùng đúng mimeType mà MediaRecorder đã sử dụng để tạo Blob
         const audioBlob = new Blob(audioChunksRef.current, {
-          type: "audio/webm",
+          type: actualMime,
         });
 
         setRawAudioBlob(audioBlob);
@@ -446,7 +464,7 @@ export default function RecordingModal({
 
         const audioUrl = URL.createObjectURL(audioBlob);
         setPreviewAudioUrl(audioUrl);
-        setRecordingStatus("preview");
+        setRecordingStatus('preview');
         setSyncOffset(0);
         stream.getTracks().forEach((track) => track.stop());
       };
@@ -495,9 +513,11 @@ export default function RecordingModal({
             setCountDownBeat(beatNumber);
             if (
               beatNumber === beatsPerMeasure + 1 &&
-              mediaRecorderRef.current.state === "inactive"
+              mediaRecorderRef.current.state === 'inactive'
             ) {
-              mediaRecorderRef.current.start();
+              // timeslice=100ms: chia nhỏ dữ liệu audio liên tục,
+              // tránh 1 chunk lớn thiếu header gây lỗi phát lại
+              mediaRecorderRef.current.start(100);
             }
             if (beatNumber === countInBeats + 1) {
               setRecordingStatus("recording");
