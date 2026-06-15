@@ -568,17 +568,25 @@ export default function RecordingModal({
     if (!currentAudioBlob) return;
 
     setIsAiProcessing(true);
+    // Timeout 5 phút — CPU inference trên Render có thể chậm
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
+
     try {
       const formData = new FormData();
       formData.append("audio", currentAudioBlob, "raw_record.webm");
 
-      const response = await fetch(`${import.meta.env.VITE_AI_URL || "http://localhost:8000"}/api/clean-audio`, {
+      const aiUrl = import.meta.env.VITE_AI_URL || "http://localhost:8000";
+      const response = await fetch(`${aiUrl}/api/clean-audio`, {
         method: "POST",
         body: formData,
+        signal: controller.signal,
       });
 
-      if (!response.ok)
-        throw new Error("Lỗi khi xử lý AI: " + response.statusText);
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Server trả về lỗi ${response.status}`);
+      }
 
       const processedBlob = await response.blob();
       setCleanAudioBlob(processedBlob);
@@ -586,12 +594,16 @@ export default function RecordingModal({
       setUseAiClean(true);
     } catch (error) {
       console.error("Lỗi khi xử lý AI:", error);
-      alert(
-        "Không thể xử lý AI! Vui lòng thử lại hoặc kiểm tra server AI. " +
-          error.message,
-      );
+      if (error.name === "AbortError") {
+        alert("AI xử lý quá lâu (>5 phút). Server có thể đang bận, vui lòng thử lại sau.");
+      } else {
+        alert(
+          "Không thể xử lý AI! Vui lòng thử lại.\nChi tiết: " + error.message,
+        );
+      }
       setUseAiClean(false);
     } finally {
+      clearTimeout(timeoutId);
       setIsAiProcessing(false);
     }
   };
