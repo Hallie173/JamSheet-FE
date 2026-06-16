@@ -353,7 +353,7 @@ export default function RecordingModal({
   const [previewAudioUrl, setPreviewAudioUrl] = useState(null);
   const [useAiClean, setUseAiClean] = useState(false);
   const [isAiProcessing, setIsAiProcessing] = useState(false);
-  const [rawAudioBlob, setRawAudioBlob] = useState(null); 
+  const [rawAudioBlob, setRawAudioBlob] = useState(null);
   const [cleanAudioBlob, setCleanAudioBlob] = useState(null);
   const [syncOffset, setSyncOffset] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -427,7 +427,12 @@ export default function RecordingModal({
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          sampleRate: 48000,
+        },
         video: false,
       });
       // Chọn mimeType được browser hỗ trợ
@@ -576,7 +581,7 @@ export default function RecordingModal({
       try {
         const res = await fetch(initialDraft.raw_audio_url);
         currentAudioBlob = await res.blob();
-        setRawAudioBlob(currentAudioBlob); 
+        setRawAudioBlob(currentAudioBlob);
       } catch (error) {
         console.error("Lỗi khi tải file nháp:", error);
         alert("Không thể tải file nháp để xử lý AI. Vui lòng thử lại!");
@@ -648,7 +653,7 @@ export default function RecordingModal({
         const file = new File([blobToSave], `record.${fileExtension}`, {
           type: blobToSave.type || (useAiClean ? "audio/wav" : "audio/webm"),
         });
-        
+
         formDataCloud.append("file", file);
         formDataCloud.append("upload_preset", "jamsheet_preset");
         formDataCloud.append("folder", "jamroom_audio");
@@ -659,12 +664,12 @@ export default function RecordingModal({
         });
         const cloudData = await cloudRes.json();
         if (!cloudRes.ok) throw new Error(cloudData.error.message);
-        
+
         finalAudioUrl = cloudData.secure_url;
       }
 
       const finalName = customTrackName.trim() || (saveTargetStatus === "published" ? `Take ${recordingTrack.instrument}` : "Bản nháp");
-      
+
       const payload = {
         instrument: recordingTrack.instrument,
         status: saveTargetStatus,
@@ -672,7 +677,7 @@ export default function RecordingModal({
         sync_offset_ms: syncOffset,
         use_ai_clean: useAiClean,
       };
-      
+
       if (finalAudioUrl) {
         payload.raw_audio_url = finalAudioUrl;
       }
@@ -686,7 +691,7 @@ export default function RecordingModal({
 
       const response = await fetch(url, {
         method: draftId ? "PUT" : "POST",
-        headers: { 
+        headers: {
           "Authorization": `Bearer ${localStorage.getItem("token")}`,
           "Content-Type": "application/json"
         },
@@ -736,7 +741,7 @@ export default function RecordingModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md flex flex-col sm:flex-row animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
-      
+
       {/* NÚT ĐÓNG MODAL (MOBILE ĐỂ LÊN ĐẦU, BÊN PHẢI) */}
       <Button
         variant="secondary"
@@ -747,7 +752,7 @@ export default function RecordingModal({
         <X className="w-5 h-5" />
       </Button>
 
-        {/* KHU VỰC NHẠC PHỔ */}
+      {/* KHU VỰC NHẠC PHỔ */}
       <div className="w-full h-[45vh] sm:h-full sm:flex-1 border-b sm:border-b-0 sm:border-r border-border p-2 sm:p-4 flex flex-col relative bg-muted/30">
         <div className="flex items-center justify-between mb-2 shrink-0">
           <h3 className="font-bold text-sm sm:text-lg flex items-center gap-1.5 sm:gap-2">
@@ -866,19 +871,17 @@ export default function RecordingModal({
 
               {(rawAudioBlob || initialDraft) && (
                 <div
-                  className={`flex items-center gap-2.5 sm:gap-3 bg-background p-2 sm:p-3 rounded-lg border w-full max-w-sm shadow-sm transition-all shrink-0 ${
-                    isAiProcessing
-                      ? "border-primary/50 opacity-70 cursor-wait bg-primary/5"
-                      : "border-border cursor-pointer hover:border-primary/50"
-                  }`}
+                  className={`flex items-center gap-2.5 sm:gap-3 bg-background p-2 sm:p-3 rounded-lg border w-full max-w-sm shadow-sm transition-all shrink-0 ${isAiProcessing
+                    ? "border-primary/50 opacity-70 cursor-wait bg-primary/5"
+                    : "border-border cursor-pointer hover:border-primary/50"
+                    }`}
                   onClick={() => !isAiProcessing && handleToggleAI()}
                 >
                   <div
-                    className={`w-4 h-4 sm:w-5 sm:h-5 rounded flex items-center justify-center border shrink-0 ${
-                      useAiClean
-                        ? "bg-primary border-primary text-primary-foreground"
-                        : "border-muted-foreground"
-                    }`}
+                    className={`w-4 h-4 sm:w-5 sm:h-5 rounded flex items-center justify-center border shrink-0 ${useAiClean
+                      ? "bg-primary border-primary text-primary-foreground"
+                      : "border-muted-foreground"
+                      }`}
                   >
                     {isAiProcessing ? (
                       <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary animate-spin" />
@@ -994,7 +997,7 @@ export default function RecordingModal({
               </div>
             </div>
           )}
-          
+
           {recordingStatus === "preview" ? (
             <div
               className={`flex flex-col gap-2.5 sm:gap-3 transition-opacity ${isNameModalOpen ? "opacity-30 pointer-events-none" : ""}`}
