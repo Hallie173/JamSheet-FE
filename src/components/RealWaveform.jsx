@@ -43,7 +43,8 @@ export default function RealWaveform({
           if (onDurationLoadRef.current) onDurationLoadRef.current(trackDur);
         }
 
-        const SAMPLES = 150;
+        // Tăng SAMPLES lên 400 để dải sóng chi tiết và mượt mà hơn
+        const SAMPLES = 400;
         const blockSize = Math.floor((rawData?.length || 0) / SAMPLES);
         const compressedPeaks = [];
 
@@ -92,29 +93,48 @@ export default function RealWaveform({
     const height = canvas.height;
     ctx.clearRect(0, 0, width, height);
 
-    const barWidth = (width / peaks.length) * 0.7;
-    const gap = (width / peaks.length) * 0.3;
+    // Hàm vẽ một đường sóng âm liền mạch (khép kín cả trên và dưới)
+    const drawWavePath = () => {
+      ctx.beginPath();
+      ctx.moveTo(0, height / 2);
 
-    peaks.forEach((peak, index) => {
-      const barHeight = Math.min(peak * height * 1.5, height);
-      const x = index * (barWidth + gap);
-      const y = (height - barHeight) / 2;
-
-      // ĐÃ SỬA: Bỏ phép chia lấy dư, so sánh trực tiếp với playbackTime
-      const barTime = (index / peaks.length) * duration;
-      const isPlayed = barTime <= playbackTime;
-
-      ctx.fillStyle = color;
-      ctx.globalAlpha = isPlayed ? 1.0 : 0.4;
-
-      if (ctx.roundRect) {
-        ctx.beginPath();
-        ctx.roundRect(x, y, barWidth, barHeight, 20);
-        ctx.fill();
-      } else {
-        ctx.fillRect(x, y, barWidth, barHeight);
+      // Vẽ đường lượn nửa trên
+      for (let i = 0; i < peaks.length; i++) {
+        const x = (i / (peaks.length - 1)) * width;
+        const y = (height / 2) - (peaks[i] * height * 0.8) / 2;
+        ctx.lineTo(x, y);
       }
-    });
+
+      // Vẽ đường lượn nửa dưới (chạy ngược lại để khép kín hình)
+      for (let i = peaks.length - 1; i >= 0; i--) {
+        const x = (i / (peaks.length - 1)) * width;
+        const y = (height / 2) + (peaks[i] * height * 0.8) / 2;
+        ctx.lineTo(x, y);
+      }
+
+      ctx.closePath();
+    };
+
+    // Tính toán tọa độ X của đoạn âm thanh đang phát
+    const progressX = duration > 0 ? (playbackTime / duration) * width : 0;
+
+    // 1. Vẽ toàn bộ dải sóng âm (Phần chưa phát) với độ mờ 0.3
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.3;
+    drawWavePath();
+    ctx.fill();
+
+    // 2. Vẽ dải sóng âm đã phát (Đậm màu) sử dụng Clipping Mask
+    ctx.save(); // Lưu trạng thái canvas
+    ctx.beginPath();
+    ctx.rect(0, 0, progressX, height); // Tạo mặt nạ hình chữ nhật từ đầu đến đoạn đang phát
+    ctx.clip(); // Áp dụng mặt nạ cắt
+
+    ctx.globalAlpha = 1.0; // Chỉnh độ nét lên 100%
+    drawWavePath(); // Vẽ lại sóng âm (nó sẽ chỉ hiển thị bên trong mặt nạ cắt)
+    ctx.fill();
+    ctx.restore(); // Khôi phục trạng thái canvas
+
   }, [peaks, color, playbackTime, duration]);
 
   if (hasError) {
@@ -138,10 +158,12 @@ export default function RealWaveform({
           <Loader2 className="w-4 h-4 animate-spin text-white" />
         </div>
       )}
+      {/* Tắt smoothing để viền canvas sắc nét hơn */}
       <canvas
         ref={canvasRef}
         width={800}
         height={200}
+        style={{ imageRendering: "pixelated" }}
         className="w-full h-full"
       />
     </div>
