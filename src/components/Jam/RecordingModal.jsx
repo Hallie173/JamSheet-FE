@@ -374,6 +374,23 @@ export default function RecordingModal({
   const exactScrollTopRef = useRef(0);
 
   useEffect(() => {
+    // Hàm đánh thức ngầm AI Server
+    const wakeUpServer = async () => {
+      try {
+        const aiUrl = import.meta.env.VITE_AI_URL || "http://localhost:8000";
+        // Gửi một request GET nhẹ nhàng tới health check endpoint "/"
+        await fetch(`${aiUrl}/`, { method: 'GET' });
+        console.log("✅ AI Server đã được đánh thức và sẵn sàng!");
+      } catch (error) {
+        console.log("⏳ Đang gọi AI Server dậy...");
+      }
+    };
+
+    // Gọi hàm ngay khi vừa mở Modal Thu âm
+    wakeUpServer();
+  }, []);
+
+  useEffect(() => {
     if (recordingStatus === "recording") {
       lastScrollTime.current = performance.now();
       exactScrollTopRef.current = sheetContainerRef.current?.scrollTop || 0;
@@ -558,6 +575,7 @@ export default function RecordingModal({
   };
 
   const handleToggleAI = async () => {
+    // 1. Tắt AI (Quay về audio gốc)
     if (useAiClean) {
       setUseAiClean(false);
       if (rawAudioBlob) {
@@ -568,12 +586,14 @@ export default function RecordingModal({
       return;
     }
 
+    // 2. Bật lại AI (Nếu đã lọc xong trước đó thì dùng lại luôn)
     if (cleanAudioBlob) {
       setUseAiClean(true);
       setPreviewAudioUrl(URL.createObjectURL(cleanAudioBlob));
       return;
     }
 
+    // 3. Xử lý AI lần đầu tiên
     let currentAudioBlob = rawAudioBlob;
 
     if (!currentAudioBlob && initialDraft?.raw_audio_url) {
@@ -593,42 +613,64 @@ export default function RecordingModal({
     if (!currentAudioBlob) return;
 
     setIsAiProcessing(true);
-    // Timeout 5 phút — CPU inference trên Render có thể chậm
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
 
     try {
       const formData = new FormData();
       formData.append("audio", currentAudioBlob, "raw_record.webm");
-
       const aiUrl = import.meta.env.VITE_AI_URL || "http://localhost:8000";
-      const response = await fetch(`${aiUrl}/api/clean-audio`, {
+
+      // BƯỚC A: Gửi file lên và nhận mã số vé (task_id)
+      const initResponse = await fetch(`${aiUrl}/api/clean-audio`, {
         method: "POST",
         body: formData,
-        signal: controller.signal,
       });
 
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `Server trả về lỗi ${response.status}`);
+      if (!initResponse.ok) {
+        throw new Error("Không thể khởi tạo tiến trình AI trên Server");
       }
 
-      const processedBlob = await response.blob();
-      setCleanAudioBlob(processedBlob);
-      setPreviewAudioUrl(URL.createObjectURL(processedBlob));
-      setUseAiClean(true);
+      const { task_id } = await initResponse.json();
+      console.log(`Đã gửi file thành công. Task ID: ${task_id}. Đang chờ AI xử lý...`);
+
+      // BƯỚC B: Liên tục hỏi thăm tiến độ (Mỗi 3 giây / lần)
+      const pollInterval = setInterval(async () => {
+        try {
+          const statusRes = await fetch(`${aiUrl}/api/task-status/${task_id}`);
+          const statusData = await statusRes.json();
+
+          if (statusData.status === "completed") {
+            // Dừng vòng lặp hỏi thăm
+            clearInterval(pollInterval);
+            console.log("AI đã xử lý xong! Đang tải file về...");
+
+            // BƯỚC C: Tải file âm thanh sạch về máy
+            const downloadRes = await fetch(`${aiUrl}/api/download/${task_id}`);
+            if (!downloadRes.ok) throw new Error("Lỗi khi tải file kết quả");
+
+            const processedBlob = await downloadRes.blob();
+
+            setCleanAudioBlob(processedBlob);
+            setPreviewAudioUrl(URL.createObjectURL(processedBlob));
+            setUseAiClean(true);
+            setIsAiProcessing(false);
+
+          } else if (statusData.status === "failed") {
+            clearInterval(pollInterval);
+            throw new Error("AI xử lý thất bại tại Server");
+          }
+          // Nếu status vẫn là "processing", vòng lặp sẽ tự động chạy tiếp sau 3s
+        } catch (err) {
+          clearInterval(pollInterval);
+          console.error("Lỗi Polling:", err);
+          setIsAiProcessing(false);
+          alert("Mất kết nối với AI Server khi đang chờ kết quả!");
+        }
+      }, 3000); // 3000ms = 3 giây
+
     } catch (error) {
-      console.error("Lỗi khi xử lý AI:", error);
-      if (error.name === "AbortError") {
-        alert("AI xử lý quá lâu (>5 phút). Server có thể đang bận, vui lòng thử lại sau.");
-      } else {
-        alert(
-          "Không thể xử lý AI! Vui lòng thử lại.\nChi tiết: " + error.message,
-        );
-      }
+      console.error("Lỗi khi gửi AI:", error);
+      alert("Không thể gửi yêu cầu AI! Vui lòng thử lại.\nChi tiết: " + error.message);
       setUseAiClean(false);
-    } finally {
-      clearTimeout(timeoutId);
       setIsAiProcessing(false);
     }
   };
