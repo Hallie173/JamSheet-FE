@@ -369,6 +369,7 @@ export default function RecordingModal({
   const metronomeRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const pollIntervalRef = useRef(null);
 
   const sheetContainerRef = useRef(null);
   const scrollAnimationRef = useRef(null);
@@ -449,6 +450,15 @@ export default function RecordingModal({
       setIsRawRecordedFresh(false);
     }
   }, [initialDraft]);
+
+  // Dọn dẹp Zombie Polling khi Modal bị tắt đột ngột
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, []);
 
   const startRecordingFlow = async () => {
     if (!activeRoom || !recordingTrack) return;
@@ -653,14 +663,14 @@ export default function RecordingModal({
       console.log(`Đã gửi file thành công. Task ID: ${task_id}. Đang chờ AI xử lý...`);
 
       // BƯỚC B: Liên tục hỏi thăm tiến độ (Mỗi 3 giây / lần)
-      const pollInterval = setInterval(async () => {
+      pollIntervalRef.current = setInterval(async () => {
         try {
           const statusRes = await fetch(`${aiUrl}/api/task-status/${task_id}`);
           const statusData = await statusRes.json();
 
           if (statusData.status === "completed") {
             // Dừng vòng lặp hỏi thăm
-            clearInterval(pollInterval);
+            clearInterval(pollIntervalRef.current);
             console.log("AI đã xử lý xong! Đang tải file về...");
 
             // BƯỚC C: Tải file âm thanh sạch về máy
@@ -675,12 +685,12 @@ export default function RecordingModal({
             setIsAiProcessing(false);
 
           } else if (statusData.status === "failed") {
-            clearInterval(pollInterval);
+            clearInterval(pollIntervalRef.current);
             throw new Error("AI xử lý thất bại tại Server");
           }
           // Nếu status vẫn là "processing", vòng lặp sẽ tự động chạy tiếp sau 3s
         } catch (err) {
-          clearInterval(pollInterval);
+          clearInterval(pollIntervalRef.current);
           console.error("Lỗi Polling:", err);
           setIsAiProcessing(false);
           alert("Mất kết nối với AI Server khi đang chờ kết quả!");
@@ -811,6 +821,11 @@ export default function RecordingModal({
   };
 
   const handleClose = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+
     stopRecordingFlow();
     cancelPreview();
     onClose();
