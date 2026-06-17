@@ -355,6 +355,8 @@ export default function RecordingModal({
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [rawAudioBlob, setRawAudioBlob] = useState(null);
   const [cleanAudioBlob, setCleanAudioBlob] = useState(null);
+  // Đánh dấu rawAudioBlob có phải vừa thu mới không (để phân biệt với blob tải từ server)
+  const [isRawRecordedFresh, setIsRawRecordedFresh] = useState(false);
   const [syncOffset, setSyncOffset] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -431,10 +433,20 @@ export default function RecordingModal({
 
   useEffect(() => {
     if (initialDraft) {
-      setPreviewAudioUrl(initialDraft.raw_audio_url);
+      // Nếu bản nháp đã lọc AI và có clean_audio_url → restore trạng thái đã lọc
+      const hasCleanAudio =
+        initialDraft.clean_audio_url && initialDraft.ai_status === "completed";
+      if (hasCleanAudio) {
+        setPreviewAudioUrl(initialDraft.clean_audio_url);
+        setUseAiClean(true);
+      } else {
+        setPreviewAudioUrl(initialDraft.raw_audio_url);
+      }
       setRecordingStatus("preview");
       if (initialDraft.sync_offset_ms)
         setSyncOffset(initialDraft.sync_offset_ms);
+      // Đánh dấu raw hiện tại là từ server (không phải thu mới)
+      setIsRawRecordedFresh(false);
     }
   }, [initialDraft]);
 
@@ -483,6 +495,7 @@ export default function RecordingModal({
         setRawAudioBlob(audioBlob);
         setCleanAudioBlob(null);
         setUseAiClean(false);
+        setIsRawRecordedFresh(true); // Đánh dấu đây là bản thu mới vừa ghi xong
 
         const audioUrl = URL.createObjectURL(audioBlob);
         setPreviewAudioUrl(audioUrl);
@@ -580,13 +593,20 @@ export default function RecordingModal({
       setUseAiClean(false);
       if (rawAudioBlob) {
         setPreviewAudioUrl(URL.createObjectURL(rawAudioBlob));
-      } else if (initialDraft) {
+      } else if (initialDraft?.raw_audio_url) {
         setPreviewAudioUrl(initialDraft.raw_audio_url);
       }
       return;
     }
 
-    // 2. Bật lại AI (Nếu đã lọc xong trước đó thì dùng lại luôn)
+    // 2. Bật lại AI - Nếu bản nháp đã có clean_audio_url từ server → dùng lại, không cần xử lý lại
+    if (!cleanAudioBlob && initialDraft?.clean_audio_url && initialDraft?.ai_status === "completed") {
+      setUseAiClean(true);
+      setPreviewAudioUrl(initialDraft.clean_audio_url);
+      return;
+    }
+
+    // 3. Bật lại AI (Nếu đã lọc xong trước đó thì dùng lại luôn)
     if (cleanAudioBlob) {
       setUseAiClean(true);
       setPreviewAudioUrl(URL.createObjectURL(cleanAudioBlob));
@@ -685,32 +705,49 @@ export default function RecordingModal({
   const executeSaveTrack = async () => {
     setIsUploading(true);
     setIsNameModalOpen(false);
+
+    const params = new URLSearchParams(window.location.search);
+    const draftId = params.get("draftId");
+
     try {
-      let finalAudioUrl = null;
-      let blobToSave = useAiClean ? cleanAudioBlob : rawAudioBlob;
-
-      if (blobToSave) {
+      // Helper: upload một blob lên Cloudinary và trả về URL
+      const uploadBlob = async (blob, filename) => {
         const formDataCloud = new FormData();
-        const fileExtension = useAiClean ? "wav" : "webm";
-        const file = new File([blobToSave], `record.${fileExtension}`, {
-          type: blobToSave.type || (useAiClean ? "audio/wav" : "audio/webm"),
-        });
-
+        const file = new File([blob], filename, { type: blob.type });
         formDataCloud.append("file", file);
         formDataCloud.append("upload_preset", "jamsheet_preset");
         formDataCloud.append("folder", "jamroom_audio");
 
-        const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/dfwrrelbq/video/upload`, {
-          method: "POST",
-          body: formDataCloud,
-        });
+        const cloudRes = await fetch(
+          `https://api.cloudinary.com/v1_1/dfwrrelbq/video/upload`,
+          { method: "POST", body: formDataCloud },
+        );
         const cloudData = await cloudRes.json();
         if (!cloudRes.ok) throw new Error(cloudData.error.message);
+        return cloudData.secure_url;
+      };
 
-        finalAudioUrl = cloudData.secure_url;
+      let finalRawAudioUrl = null;
+      let finalCleanAudioUrl = null;
+
+      // Upload raw audio khi:
+      // - Tạo track mới (không có draftId) → luôn cần raw_audio_url
+      // - Cập nhật bản nháp với thu âm mới (isRawRecordedFresh = true)
+      // - Không dùng AI → raw chính là bản cuối cùng
+      if (rawAudioBlob && (!draftId || isRawRecordedFresh || !useAiClean)) {
+        finalRawAudioUrl = await uploadBlob(rawAudioBlob, "record.webm");
       }
 
-      const finalName = customTrackName.trim() || (saveTargetStatus === "published" ? `Take ${recordingTrack.instrument}` : "Bản nháp");
+      // Upload clean audio khi đã lọc AI xong và có cleanAudioBlob mới
+      if (useAiClean && cleanAudioBlob) {
+        finalCleanAudioUrl = await uploadBlob(cleanAudioBlob, "record_clean.wav");
+      }
+
+      const finalName =
+        customTrackName.trim() ||
+        (saveTargetStatus === "published"
+          ? `Take ${recordingTrack.instrument}`
+          : "Bản nháp");
 
       const payload = {
         instrument: recordingTrack.instrument,
@@ -720,12 +757,10 @@ export default function RecordingModal({
         use_ai_clean: useAiClean,
       };
 
-      if (finalAudioUrl) {
-        payload.raw_audio_url = finalAudioUrl;
-      }
+      // Lưu đúng URL vào đúng trường
+      if (finalRawAudioUrl) payload.raw_audio_url = finalRawAudioUrl;
+      if (finalCleanAudioUrl) payload.clean_audio_url = finalCleanAudioUrl;
 
-      const params = new URLSearchParams(window.location.search);
-      const draftId = params.get("draftId");
       const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
       const url = draftId
         ? `${baseUrl}/api/jams/tracks/${draftId}`
@@ -734,8 +769,8 @@ export default function RecordingModal({
       const response = await fetch(url, {
         method: draftId ? "PUT" : "POST",
         headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json"
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
       });
