@@ -344,7 +344,6 @@ export default function RecordingModal({
   initialDraft,
   onClose,
 }) {
-  // Kiểm tra URL param orphaned=true (bản nháp thuộc phòng frozen)
   const searchParams = new URLSearchParams(window.location.search);
   const isOrphaned = searchParams.get("orphaned") === "true";
   const [autoScrollSpeed, setAutoScrollSpeed] = useState(1);
@@ -355,7 +354,6 @@ export default function RecordingModal({
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [rawAudioBlob, setRawAudioBlob] = useState(null);
   const [cleanAudioBlob, setCleanAudioBlob] = useState(null);
-  // Đánh dấu rawAudioBlob có phải vừa thu mới không (để phân biệt với blob tải từ server)
   const [isRawRecordedFresh, setIsRawRecordedFresh] = useState(false);
   const [syncOffset, setSyncOffset] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -371,25 +369,24 @@ export default function RecordingModal({
   const audioChunksRef = useRef([]);
   const pollIntervalRef = useRef(null);
 
+  // TRẠM KIỂM SOÁT MỚI: LƯU TRỮ ID TÁC VỤ ĐỂ GỌI LỆNH HỦY KHI CẦN
+  const currentAiTaskIdRef = useRef(null);
+
   const sheetContainerRef = useRef(null);
   const scrollAnimationRef = useRef(null);
   const lastScrollTime = useRef(0);
   const exactScrollTopRef = useRef(0);
 
   useEffect(() => {
-    // Hàm đánh thức ngầm AI Server
     const wakeUpServer = async () => {
       try {
         const aiUrl = import.meta.env.VITE_AI_URL || "http://localhost:8000";
-        // Gửi một request GET nhẹ nhàng tới health check endpoint "/"
         await fetch(`${aiUrl}/`, { method: 'GET' });
         console.log("✅ AI Server đã được đánh thức và sẵn sàng!");
       } catch (error) {
         console.log("⏳ Đang gọi AI Server dậy...");
       }
     };
-
-    // Gọi hàm ngay khi vừa mở Modal Thu âm
     wakeUpServer();
   }, []);
 
@@ -434,7 +431,6 @@ export default function RecordingModal({
 
   useEffect(() => {
     if (initialDraft) {
-      // Nếu bản nháp đã lọc AI và có clean_audio_url → restore trạng thái đã lọc
       const hasCleanAudio =
         initialDraft.clean_audio_url && initialDraft.ai_status === "completed";
       if (hasCleanAudio) {
@@ -446,17 +442,28 @@ export default function RecordingModal({
       setRecordingStatus("preview");
       if (initialDraft.sync_offset_ms)
         setSyncOffset(initialDraft.sync_offset_ms);
-      // Đánh dấu raw hiện tại là từ server (không phải thu mới)
       setIsRawRecordedFresh(false);
     }
   }, [initialDraft]);
 
-  // Dọn dẹp Zombie Polling khi Modal bị tắt đột ngột
+  // HÀM CHUYÊN DỤNG ĐỂ BÁO HỦY TÁC VỤ AI
+  const cancelAiTask = () => {
+    if (currentAiTaskIdRef.current) {
+      const aiUrl = import.meta.env.VITE_AI_URL || "http://localhost:8000";
+      fetch(`${aiUrl}/api/tasks/${currentAiTaskIdRef.current}`, {
+        method: "DELETE",
+      }).catch(() => { });
+      currentAiTaskIdRef.current = null;
+    }
+  };
+
   useEffect(() => {
     return () => {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
       }
+      // Khi component tắt đột ngột, bắn lệnh hủy
+      cancelAiTask();
     };
   }, []);
 
@@ -474,7 +481,6 @@ export default function RecordingModal({
         },
         video: false,
       });
-      // Chọn mimeType được browser hỗ trợ
       const preferredTypes = [
         'audio/webm;codecs=opus',
         'audio/webm',
@@ -497,7 +503,6 @@ export default function RecordingModal({
       };
 
       mediaRecorderRef.current.onstop = () => {
-        // Dùng đúng mimeType mà MediaRecorder đã sử dụng để tạo Blob
         const audioBlob = new Blob(audioChunksRef.current, {
           type: actualMime,
         });
@@ -505,7 +510,7 @@ export default function RecordingModal({
         setRawAudioBlob(audioBlob);
         setCleanAudioBlob(null);
         setUseAiClean(false);
-        setIsRawRecordedFresh(true); // Đánh dấu đây là bản thu mới vừa ghi xong
+        setIsRawRecordedFresh(true);
 
         const audioUrl = URL.createObjectURL(audioBlob);
         setPreviewAudioUrl(audioUrl);
@@ -560,8 +565,6 @@ export default function RecordingModal({
               beatNumber === beatsPerMeasure + 1 &&
               mediaRecorderRef.current.state === 'inactive'
             ) {
-              // timeslice=100ms: chia nhỏ dữ liệu audio liên tục,
-              // tránh 1 chunk lớn thiếu header gây lỗi phát lại
               mediaRecorderRef.current.start(100);
             }
             if (beatNumber === countInBeats + 1) {
@@ -598,7 +601,18 @@ export default function RecordingModal({
   };
 
   const handleToggleAI = async () => {
-    // 1. Tắt AI (Quay về audio gốc)
+    // Nếu đang chạy AI mà user bấm hủy (click vào ô lần nữa)
+    if (isAiProcessing) {
+      cancelAiTask();
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+      setIsAiProcessing(false);
+      setUseAiClean(false);
+      return;
+    }
+
     if (useAiClean) {
       setUseAiClean(false);
       if (rawAudioBlob) {
@@ -609,21 +623,18 @@ export default function RecordingModal({
       return;
     }
 
-    // 2. Bật lại AI - Nếu bản nháp đã có clean_audio_url từ server → dùng lại, không cần xử lý lại
     if (!cleanAudioBlob && initialDraft?.clean_audio_url && initialDraft?.ai_status === "completed") {
       setUseAiClean(true);
       setPreviewAudioUrl(initialDraft.clean_audio_url);
       return;
     }
 
-    // 3. Bật lại AI (Nếu đã lọc xong trước đó thì dùng lại luôn)
     if (cleanAudioBlob) {
       setUseAiClean(true);
       setPreviewAudioUrl(URL.createObjectURL(cleanAudioBlob));
       return;
     }
 
-    // 3. Xử lý AI lần đầu tiên
     let currentAudioBlob = rawAudioBlob;
 
     if (!currentAudioBlob && initialDraft?.raw_audio_url) {
@@ -649,7 +660,6 @@ export default function RecordingModal({
       formData.append("audio", currentAudioBlob, "raw_record.webm");
       const aiUrl = import.meta.env.VITE_AI_URL || "http://localhost:8000";
 
-      // BƯỚC A: Gửi file lên và nhận mã số vé (task_id)
       const initResponse = await fetch(`${aiUrl}/api/clean-audio`, {
         method: "POST",
         body: formData,
@@ -660,20 +670,19 @@ export default function RecordingModal({
       }
 
       const { task_id } = await initResponse.json();
+      currentAiTaskIdRef.current = task_id; // LƯU VÉ ĐỂ DÀNH BÁO HỦY
       console.log(`Đã gửi file thành công. Task ID: ${task_id}. Đang chờ AI xử lý...`);
 
-      // BƯỚC B: Liên tục hỏi thăm tiến độ (Mỗi 3 giây / lần)
       pollIntervalRef.current = setInterval(async () => {
         try {
           const statusRes = await fetch(`${aiUrl}/api/task-status/${task_id}`);
           const statusData = await statusRes.json();
 
           if (statusData.status === "completed") {
-            // Dừng vòng lặp hỏi thăm
             clearInterval(pollIntervalRef.current);
+            currentAiTaskIdRef.current = null; // Xóa vé
             console.log("AI đã xử lý xong! Đang tải file về...");
 
-            // BƯỚC C: Tải file âm thanh sạch về máy
             const downloadRes = await fetch(`${aiUrl}/api/download/${task_id}`);
             if (!downloadRes.ok) throw new Error("Lỗi khi tải file kết quả");
 
@@ -686,26 +695,29 @@ export default function RecordingModal({
 
           } else if (statusData.status === "failed") {
             clearInterval(pollIntervalRef.current);
+            currentAiTaskIdRef.current = null;
             throw new Error("AI xử lý thất bại tại Server");
           }
-          // Nếu status vẫn là "processing", vòng lặp sẽ tự động chạy tiếp sau 3s
         } catch (err) {
           clearInterval(pollIntervalRef.current);
+          currentAiTaskIdRef.current = null;
           console.error("Lỗi Polling:", err);
           setIsAiProcessing(false);
           alert("Mất kết nối với AI Server khi đang chờ kết quả!");
         }
-      }, 3000); // 3000ms = 3 giây
+      }, 3000);
 
     } catch (error) {
       console.error("Lỗi khi gửi AI:", error);
       alert("Không thể gửi yêu cầu AI! Vui lòng thử lại.\nChi tiết: " + error.message);
       setUseAiClean(false);
       setIsAiProcessing(false);
+      currentAiTaskIdRef.current = null;
     }
   };
 
   const cancelPreview = () => {
+    cancelAiTask(); // Hủy tác vụ AI trên Server nếu đang chạy
     setPreviewAudioUrl(null);
     setRecordingStatus("idle");
     setCountDownBeat(0);
@@ -720,7 +732,6 @@ export default function RecordingModal({
     const draftId = params.get("draftId");
 
     try {
-      // Helper: upload một blob lên Cloudinary và trả về URL
       const uploadBlob = async (blob, filename) => {
         const formDataCloud = new FormData();
         const file = new File([blob], filename, { type: blob.type });
@@ -740,15 +751,10 @@ export default function RecordingModal({
       let finalRawAudioUrl = null;
       let finalCleanAudioUrl = null;
 
-      // Upload raw audio khi:
-      // - Tạo track mới (không có draftId) → luôn cần raw_audio_url
-      // - Cập nhật bản nháp với thu âm mới (isRawRecordedFresh = true)
-      // - Không dùng AI → raw chính là bản cuối cùng
       if (rawAudioBlob && (!draftId || isRawRecordedFresh || !useAiClean)) {
         finalRawAudioUrl = await uploadBlob(rawAudioBlob, "record.webm");
       }
 
-      // Upload clean audio khi đã lọc AI xong và có cleanAudioBlob mới
       if (useAiClean && cleanAudioBlob) {
         finalCleanAudioUrl = await uploadBlob(cleanAudioBlob, "record_clean.wav");
       }
@@ -767,7 +773,6 @@ export default function RecordingModal({
         use_ai_clean: useAiClean,
       };
 
-      // Lưu đúng URL vào đúng trường
       if (finalRawAudioUrl) payload.raw_audio_url = finalRawAudioUrl;
       if (finalCleanAudioUrl) payload.clean_audio_url = finalCleanAudioUrl;
 
@@ -821,10 +826,12 @@ export default function RecordingModal({
   };
 
   const handleClose = () => {
+    // Dọn dẹp Polling và Hủy Task AI trên Server
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = null;
     }
+    cancelAiTask();
 
     stopRecordingFlow();
     cancelPreview();
@@ -964,33 +971,35 @@ export default function RecordingModal({
               {(rawAudioBlob || initialDraft) && (
                 <div
                   className={`flex items-center gap-2.5 sm:gap-3 bg-background p-2 sm:p-3 rounded-lg border w-full max-w-sm shadow-sm transition-all shrink-0 ${isAiProcessing
-                    ? "border-primary/50 opacity-70 cursor-wait bg-primary/5"
+                    ? "border-primary/50 opacity-70 cursor-wait bg-primary/5 hover:bg-destructive/10 hover:border-destructive hover:opacity-100"
                     : "border-border cursor-pointer hover:border-primary/50"
                     }`}
-                  onClick={() => !isAiProcessing && handleToggleAI()}
+                  onClick={() => handleToggleAI()}
                 >
                   <div
-                    className={`w-4 h-4 sm:w-5 sm:h-5 rounded flex items-center justify-center border shrink-0 ${useAiClean
-                      ? "bg-primary border-primary text-primary-foreground"
-                      : "border-muted-foreground"
+                    className={`w-4 h-4 sm:w-5 sm:h-5 rounded flex items-center justify-center border shrink-0 transition-colors ${isAiProcessing
+                        ? "border-destructive group-hover:bg-destructive group-hover:text-destructive-foreground"
+                        : useAiClean
+                          ? "bg-primary border-primary text-primary-foreground"
+                          : "border-muted-foreground"
                       }`}
                   >
                     {isAiProcessing ? (
-                      <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary animate-spin" />
+                      <X className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-destructive group-hover:text-white" />
                     ) : (
                       useAiClean && <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     )}
                   </div>
-                  <div className="flex flex-col flex-1 overflow-hidden">
-                    <span className="text-[11px] sm:text-sm font-bold flex items-center gap-1 sm:gap-1.5 truncate">
-                      <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-500 shrink-0" />
+                  <div className="flex flex-col flex-1 overflow-hidden group">
+                    <span className={`text-[11px] sm:text-sm font-bold flex items-center gap-1 sm:gap-1.5 truncate ${isAiProcessing ? "group-hover:text-destructive" : ""}`}>
+                      <Sparkles className={`w-3 h-3 sm:w-4 sm:h-4 shrink-0 ${isAiProcessing ? "text-destructive" : "text-emerald-500"}`} />
                       {isAiProcessing
-                        ? "AI đang dọn dẹp âm thanh..."
+                        ? "Bấm để HỦY dọn dẹp AI"
                         : "Dùng AI lọc tạp âm"}
                     </span>
                     <span className="text-[9px] sm:text-xs text-muted-foreground truncate">
                       {isAiProcessing
-                        ? "Vui lòng chờ khoảng 2-5 giây"
+                        ? "AI đang chạy. Bấm lần nữa để dừng."
                         : "Loại bỏ tiếng ồn nền, tiếng quạt gió..."}
                     </span>
                   </div>
@@ -1146,7 +1155,7 @@ export default function RecordingModal({
                       variant="secondary"
                       className="flex-1 h-12 sm:h-12 font-bold bg-muted hover:bg-muted/80 text-xs sm:text-sm rounded-xl sm:rounded-md"
                       onClick={() => openNameModal("draft")}
-                      disabled={isUploading}
+                      disabled={isUploading || isAiProcessing}
                     >
                       {isUploading && <Loader2 className="w-4 h-4 mr-1.5 sm:mr-2 animate-spin" />}
                       {isUploading ? "Đang xử lý..." : "Lưu nháp"}
@@ -1156,7 +1165,7 @@ export default function RecordingModal({
                     size="lg"
                     className="w-full h-12 sm:h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm sm:text-xl shadow-lg shadow-primary/20 rounded-xl sm:rounded-md"
                     onClick={() => openNameModal("published")}
-                    disabled={isUploading}
+                    disabled={isUploading || isAiProcessing}
                   >
                     <UploadCloud className="w-5 h-5 sm:w-6 sm:h-6 mr-1.5 sm:mr-2" /> Nộp bản thu
                   </Button>
