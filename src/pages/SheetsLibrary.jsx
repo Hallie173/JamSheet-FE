@@ -1033,7 +1033,7 @@ export default function SheetsLibrary() {
                     <option value="Other">Khác</option>
                   </select>
                   {uploadData.genre && (
-                    <p className="text-[9px] sm:text-[10px] text-emerald-600 italic">
+                    <p className="text-[10px] sm:text-[10px] text-emerald-600 italic">
                       {GENRE_SUGGESTIONS[uploadData.genre]}
                     </p>
                   )}
