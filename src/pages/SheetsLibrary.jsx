@@ -21,6 +21,15 @@ import { Label } from "@/components/ui/label";
 import { Card, CardFooter, CardHeader } from "@/components/ui/card";
 import { getApiUrl, API_ENDPOINTS } from "@/lib/constants";
 
+const GENRE_SUGGESTIONS = {
+  Pop: "💡 Pop? Bạn có thể cần: Keyboard, Guitar Acoustic, Vocal...",
+  Rock: "💡 Rock? Thường không thể thiếu: Guitar Điện, Bass, Trống...",
+  Acoustic: "💡 Acoustic? Gợi ý hay: Guitar Mộc, Cajon, Vocal...",
+  Jazz: "💡 Jazz? Thử kết hợp: Saxophone, Piano, Contrabass...",
+  Classical: "💡 Classical? Chắc chắn bạn sẽ cần: Piano, Violin, Cello...",
+  Other: "💡 Hãy nhập bất kỳ nhạc cụ nào phù hợp với bản phối của bạn."
+};
+
 const formatSheetData = (sheet) => ({
   ...sheet,
   id: sheet._id,
@@ -656,6 +665,12 @@ export default function SheetsLibrary() {
                 <option value="Classical">Classical</option>
                 <option value="Other">Khác</option>
               </select>
+
+              {editFormData.genre && (
+                <p className="text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400 italic animate-in fade-in slide-in-from-top-1">
+                  {GENRE_SUGGESTIONS[editFormData.genre]}
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2 mt-auto pt-2">
               <Button
@@ -1017,6 +1032,11 @@ export default function SheetsLibrary() {
                     <option value="Classical">Classical</option>
                     <option value="Other">Khác</option>
                   </select>
+                  {uploadData.genre && (
+                    <p className="text-[9px] sm:text-[10px] text-emerald-600 italic">
+                      {GENRE_SUGGESTIONS[uploadData.genre]}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Tempo (BPM) *</Label>
