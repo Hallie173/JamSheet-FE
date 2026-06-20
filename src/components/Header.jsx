@@ -24,16 +24,12 @@ export default function Header() {
   const location = useLocation(); // Hook lấy URL hiện tại
   const isLoggedIn = !!localStorage.getItem("token");
 
-  const instruments = [
-    "Piano",
-    "Guitar",
-    "Violin",
-    "Drums",
-    "Bass",
-    "Vocal",
-    "Flute",
-    "Other",
-  ];
+  const INSTRUMENT_CATEGORIES = {
+    "Bộ Dây": ["Violin", "Viola", "Cello", "Contrabass", "Guitar", "Harp", "Banjo", "Ukulele"],
+    "Bộ Gió": ["Flute", "Clarinet", "Oboe", "Bassoon", "Saxophone", "Trumpet", "Trombone", "French Horn", "Tuba"],
+    "Bộ Gõ & Phím": ["Drums", "Xylophone", "Marimba", "Cajon", "Piano", "Organ", "Accordion", "Harpsichord", "Synthesizer"],
+    "Nhạc cụ khác": ["Nhạc cụ truyền thống", "Nhạc cụ điện tử", "Vocal", "Other"]
+  };
   const genres = ["Pop", "Rock", "Acoustic", "Jazz", "Classical", "Other"];
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -265,7 +261,7 @@ export default function Header() {
               </Button>
             </PopoverTrigger>
             <PopoverContent
-              className="w-[calc(100vw-2rem)] sm:w-80 p-4 shadow-2xl sm:shadow-xl rounded-2xl sm:rounded-md"
+              className="w-[calc(100vw-2rem)] sm:w-[800px] p-4 sm:p-6 shadow-2xl sm:shadow-xl rounded-2xl sm:rounded-md"
               align="end"
             >
               <div className="space-y-4">
@@ -284,32 +280,41 @@ export default function Header() {
                 </div>
                 <hr className="border-border" />
 
+                {/* --- BẮT ĐẦU KHỐI NHẠC CỤ MỚI --- */}
                 <div className="space-y-3">
                   <h5 className="text-base sm:text-sm font-medium text-muted-foreground">
                     Nhạc cụ
                   </h5>
-                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                    {instruments.map((item) => (
-                      <div
-                        key={item}
-                        className="flex items-center space-x-3 sm:space-x-2"
-                      >
-                        <Checkbox
-                          id={`inst-${item}`}
-                          className="w-5 h-5 sm:w-4 sm:h-4 rounded-md sm:rounded-sm"
-                          checked={selectedInsts.includes(item)}
-                          onCheckedChange={() => toggleFilter(item, "inst")}
-                        />
-                        <label
-                          htmlFor={`inst-${item}`}
-                          className="text-base sm:text-sm font-medium leading-none cursor-pointer"
-                        >
-                          {item}
-                        </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 sm:gap-6">
+                    {/* Render từng cột dựa trên bộ từ điển */}
+                    {Object.entries(INSTRUMENT_CATEGORIES).map(([category, insts]) => (
+                      <div key={category} className="space-y-2">
+                        <h6 className="text-[11px] sm:text-xs font-bold text-foreground uppercase tracking-wider mb-2 border-b pb-1">
+                          {category}
+                        </h6>
+                        <div className="flex flex-col gap-2.5 sm:gap-2">
+                          {insts.map((item) => (
+                            <div key={item} className="flex items-start space-x-3 sm:space-x-2">
+                              <Checkbox
+                                id={`inst-${item}`}
+                                className="w-5 h-5 sm:w-4 sm:h-4 rounded-md sm:rounded-sm mt-0.5"
+                                checked={selectedInsts.includes(item)}
+                                onCheckedChange={() => toggleFilter(item, "inst")}
+                              />
+                              <label
+                                htmlFor={`inst-${item}`}
+                                className="text-sm sm:text-[13px] font-medium leading-none cursor-pointer"
+                              >
+                                {item}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
+                {/* --- KẾT THÚC KHỐI NHẠC CỤ MỚI --- */}
 
                 <div className="space-y-3 pt-2">
                   <h5 className="text-base sm:text-sm font-medium text-muted-foreground">
@@ -411,8 +416,8 @@ export default function Header() {
                     key={notif._id}
                     onClick={() => handleNotificationClick(notif)}
                     className={`flex items-start gap-3 p-3 mx-2 my-1 sm:my-0.5 rounded-xl sm:rounded-lg cursor-pointer transition-all ${notif.is_read
-                        ? "bg-transparent hover:bg-muted/50 opacity-70"
-                        : "bg-primary/10 hover:bg-primary/15"
+                      ? "bg-transparent hover:bg-muted/50 opacity-70"
+                      : "bg-primary/10 hover:bg-primary/15"
                       }`}
                   >
                     {notif.sender_avatar ? (

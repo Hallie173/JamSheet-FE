@@ -18,8 +18,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardFooter, CardHeader } from "@/components/ui/card";
 import { getApiUrl, API_ENDPOINTS } from "@/lib/constants";
+
+const INSTRUMENT_CATEGORIES = {
+  "Bộ Dây": ["Violin", "Viola", "Cello", "Contrabass", "Guitar", "Harp", "Banjo", "Ukulele"],
+  "Bộ Gió": ["Flute", "Clarinet", "Oboe", "Bassoon", "Saxophone", "Trumpet", "Trombone", "French Horn", "Tuba"],
+  "Bộ Gõ & Phím": ["Drums", "Xylophone", "Marimba", "Cajon", "Piano", "Organ", "Accordion", "Harpsichord", "Synthesizer"],
+  "Nhạc cụ khác": ["Nhạc cụ truyền thống", "Nhạc cụ điện tử", "Vocal", "Other"]
+};
 
 const GENRE_SUGGESTIONS = {
   Pop: "💡 Pop? Bạn có thể cần: Keyboard, Guitar Acoustic, Vocal...",
@@ -62,10 +70,28 @@ export default function SheetsLibrary() {
   const [exploreSheetsPage, setExploreSheetsPage] = useState(1);
   const ITEMS_PER_PAGE = 8;
 
+  const toggleInstrument = (item, isEdit = false) => {
+    if (isEdit) {
+      setEditFormData(prev => ({
+        ...prev,
+        instrument_tags: prev.instrument_tags.includes(item)
+          ? prev.instrument_tags.filter(i => i !== item)
+          : [...prev.instrument_tags, item]
+      }));
+    } else {
+      setUploadData(prev => ({
+        ...prev,
+        instrument_tags: prev.instrument_tags.includes(item)
+          ? prev.instrument_tags.filter(i => i !== item)
+          : [...prev.instrument_tags, item]
+      }));
+    }
+  };
+
   const [editFormData, setEditFormData] = useState({
     title: "",
     composer: "",
-    instrument_tags: "",
+    instrument_tags: [],
     tempo: "",
     genre: "",
     time_signature: "",
@@ -75,7 +101,7 @@ export default function SheetsLibrary() {
   const [uploadData, setUploadData] = useState({
     title: "",
     composer: "",
-    instrument_tags: "",
+    instrument_tags: [],
     tempo: "",
     genre: "",
     time_signature: "",
@@ -296,6 +322,26 @@ export default function SheetsLibrary() {
 
   const handleSaveEdit = async (e, id) => {
     e.stopPropagation();
+    // Tìm ra sheet cũ đang được sửa
+    const oldSheet = mySheets.find(s => s.id === id);
+    const oldTags = oldSheet.instrument_tags || [];
+    const newTags = editFormData.instrument_tags;
+
+    if (newTags.length === 0) return alert("Vui lòng chọn ít nhất 1 nhạc cụ!");
+
+    // 1. Kiểm tra xem có nhạc cụ nào bị XÓA đi không
+    const hasDeleted = oldTags.some(tag => !newTags.includes(tag));
+    if (hasDeleted) {
+      return alert("Cảnh báo: Bạn không thể xóa bớt nhạc cụ đã có (để tránh lỗi mất bản thu ở phòng Jam). Bạn chỉ có thể thêm nhạc cụ mới!");
+    }
+
+    // 2. Kiểm tra xem có nhạc cụ nào được THÊM MỚI không
+    const hasAdded = newTags.some(tag => !oldTags.includes(tag));
+    if (hasAdded) {
+      const confirmAdd = window.confirm("Lưu ý: Bạn vừa thêm nhạc cụ mới. Một khi đã thêm, bạn sẽ KHÔNG THỂ XÓA chúng sau này. Bạn có chắc chắn muốn lưu?");
+      if (!confirmAdd) return;
+    }
+
     try {
       const token = localStorage.getItem("token");
       const updatedTags = editFormData.instrument_tags
@@ -605,19 +651,35 @@ export default function SheetsLibrary() {
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-[10px] sm:text-xs">Nhạc cụ *</Label>
-              <Input
-                size="sm"
-                className="h-7 sm:h-8 text-[10px] sm:text-xs"
-                required
-                value={editFormData.instrument_tags}
-                onChange={(e) =>
-                  setEditFormData({
-                    ...editFormData,
-                    instrument_tags: e.target.value,
-                  })
-                }
-              />
+              <Label className="text-[10px] sm:text-xs">Nhạc cụ * </Label>
+              <div className="space-y-2">
+                <div className="w-full bg-muted/20 border border-input rounded-md p-3 max-h-48 overflow-y-auto custom-scrollbar">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {Object.entries(INSTRUMENT_CATEGORIES).map(([category, insts]) => (
+                      <div key={category} className="space-y-2">
+                        <h6 className="text-[11px] font-bold text-muted-foreground uppercase border-b pb-1">
+                          {category}
+                        </h6>
+                        <div className="flex flex-col gap-2">
+                          {insts.map((item) => (
+                            <div key={item} className="flex items-start space-x-2">
+                              <Checkbox
+                                id={`upload-inst-${item}`}
+                                className="w-4 h-4 rounded-sm mt-0.5"
+                                checked={uploadData.instrument_tags.includes(item)}
+                                onCheckedChange={() => toggleInstrument(item, false)} // Đổi thành true ở form Edit
+                              />
+                              <label htmlFor={`upload-inst-${item}`} className="text-xs font-medium cursor-pointer">
+                                {item}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
             <div className="flex gap-2">
               <div className="space-y-1 flex-1">
@@ -667,7 +729,7 @@ export default function SheetsLibrary() {
               </select>
 
               {editFormData.genre && (
-                <p className="text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400 italic animate-in fade-in slide-in-from-top-1">
+                <p className="text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400 italic font-bold animate-in fade-in slide-in-from-top-1">
                   {GENRE_SUGGESTIONS[editFormData.genre]}
                 </p>
               )}
@@ -1033,7 +1095,7 @@ export default function SheetsLibrary() {
                     <option value="Other">Khác</option>
                   </select>
                   {uploadData.genre && (
-                    <p className="text-[10px] sm:text-[10px] text-emerald-600 italic">
+                    <p className="text-[10px] sm:text-xs text-emerald-600 italic font-bold">
                       {GENRE_SUGGESTIONS[uploadData.genre]}
                     </p>
                   )}
