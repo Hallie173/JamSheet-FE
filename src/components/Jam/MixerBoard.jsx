@@ -294,6 +294,8 @@ export default function MixerBoard({ isGuest = false }) {
 
   const handleAddNewTrack = () => {
     if (!newInstrumentName.trim()) return;
+    const confirmAdd = window.confirm(`Bạn có chắc chắn muốn thêm kệ "${newInstrumentName.trim()}"?\n\nCảnh báo: Một khi đã thêm kệ nhạc cụ, bạn sẽ KHÔNG THỂ XÓA nó khỏi phòng thu và nhạc phổ gốc để đảm bảo tính toàn vẹn dữ liệu.`);
+    if (!confirmAdd) return;
     addNewTrack(newInstrumentName.trim());
     setNewInstrumentName("");
     setIsAddingTrack(false);
@@ -602,11 +604,10 @@ export default function MixerBoard({ isGuest = false }) {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className={`h-6 sm:h-7 px-1 sm:px-2 flex gap-1 transition-colors ${
-                            isLikedByMe
-                              ? "text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                              : "text-muted-foreground"
-                          }`}
+                          className={`h-6 sm:h-7 px-1 sm:px-2 flex gap-1 transition-colors ${isLikedByMe
+                            ? "text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                            : "text-muted-foreground"
+                            }`}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (!currentUserId)

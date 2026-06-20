@@ -313,7 +313,7 @@ export default function SheetsLibrary() {
     setEditFormData({
       title: sheet.title,
       composer: sheet.composer || "",
-      instrument_tags: sheet.instrument_tags.join(", "),
+      instrument_tags: sheet.instrument_tags || [],
       tempo: sheet.tempo || "",
       genre: sheet.genre || "",
       time_signature: sheet.time_signature || "4/4",
@@ -322,10 +322,11 @@ export default function SheetsLibrary() {
 
   const handleSaveEdit = async (e, id) => {
     e.stopPropagation();
-    // Tìm ra sheet cũ đang được sửa
+
+    // Tìm ra sheet cũ đang được sửa để so sánh
     const oldSheet = mySheets.find(s => s.id === id);
     const oldTags = oldSheet.instrument_tags || [];
-    const newTags = editFormData.instrument_tags;
+    const newTags = editFormData.instrument_tags; // Bây giờ nó đã là 1 Mảng chuẩn
 
     if (newTags.length === 0) return alert("Vui lòng chọn ít nhất 1 nhạc cụ!");
 
@@ -344,10 +345,6 @@ export default function SheetsLibrary() {
 
     try {
       const token = localStorage.getItem("token");
-      const updatedTags = editFormData.instrument_tags
-        .split(",")
-        .map((t) => t.trim())
-        .filter((t) => t !== "");
 
       const res = await fetch(
         `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/sheets/${id}`,
@@ -359,7 +356,7 @@ export default function SheetsLibrary() {
           },
           body: JSON.stringify({
             ...editFormData,
-            instrument_tags: updatedTags,
+            instrument_tags: newTags, // Truyền thẳng Mảng đi, không cần split hay join nữa!
           }),
         },
       );
@@ -664,12 +661,15 @@ export default function SheetsLibrary() {
                           {insts.map((item) => (
                             <div key={item} className="flex items-start space-x-2">
                               <Checkbox
-                                id={`upload-inst-${item}`}
+                                // Đổi id để không bị trùng với form Upload
+                                id={`edit-inst-${item}`}
                                 className="w-4 h-4 rounded-sm mt-0.5"
-                                checked={uploadData.instrument_tags.includes(item)}
-                                onCheckedChange={() => toggleInstrument(item, false)} // Đổi thành true ở form Edit
+                                // SỬA 1: Dùng editFormData thay vì uploadData
+                                checked={editFormData.instrument_tags.includes(item)}
+                                // SỬA 2: Đổi false thành true để cập nhật đúng state của Form Edit
+                                onCheckedChange={() => toggleInstrument(item, true)}
                               />
-                              <label htmlFor={`upload-inst-${item}`} className="text-xs font-medium cursor-pointer">
+                              <label htmlFor={`edit-inst-${item}`} className="text-xs font-medium cursor-pointer">
                                 {item}
                               </label>
                             </div>
@@ -1063,18 +1063,33 @@ export default function SheetsLibrary() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Nhạc cụ *</Label>
-                <Input
-                  required
-                  placeholder="VD: Piano, Guitar Acoustic..."
-                  value={uploadData.instrument_tags}
-                  onChange={(e) =>
-                    setUploadData({
-                      ...uploadData,
-                      instrument_tags: e.target.value,
-                    })
-                  }
-                />
+                <Label>Nhạc cụ * (Chọn ít nhất 1)</Label>
+                <div className="w-full bg-muted/20 border border-input rounded-md p-3 max-h-48 overflow-y-auto custom-scrollbar">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {Object.entries(INSTRUMENT_CATEGORIES).map(([category, insts]) => (
+                      <div key={category} className="space-y-2">
+                        <h6 className="text-[11px] font-bold text-muted-foreground uppercase border-b pb-1">
+                          {category}
+                        </h6>
+                        <div className="flex flex-col gap-2">
+                          {insts.map((item) => (
+                            <div key={item} className="flex items-start space-x-2">
+                              <Checkbox
+                                id={`upload-inst-${item}`}
+                                className="w-4 h-4 rounded-sm mt-0.5"
+                                checked={uploadData.instrument_tags.includes(item)}
+                                onCheckedChange={() => toggleInstrument(item, false)}
+                              />
+                              <label htmlFor={`upload-inst-${item}`} className="text-xs font-medium cursor-pointer">
+                                {item}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
