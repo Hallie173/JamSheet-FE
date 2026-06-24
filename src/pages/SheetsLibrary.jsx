@@ -960,7 +960,7 @@ export default function SheetsLibrary() {
       {/* MODAL UPLOAD */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg bg-background p-6 shadow-2xl animate-in fade-in zoom-in-95">
+          <Card className="w-full max-w-lg bg-background p-6 shadow-2xl animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <UploadCloud className="w-5 h-5 text-primary" /> Tải lên Nhạc
