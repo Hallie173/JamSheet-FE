@@ -522,7 +522,7 @@ export default function Home() {
               {needsYouJams.map((jam) => (
                 <Card
                   key={jam.id}
-                  className="cursor-pointer border-dashed border-2 hover:border-emerald-500/60 hover:bg-card/80 transition-all bg-card/30 rounded-2xl sm:rounded-xl shadow-xl sm:shadow-sm"
+                  className="cursor-pointer border-dashed border-2 hover:border-emerald-500/60 hover:bg-card/80 transition-all bg-card/30 rounded-2xl sm:rounded-xl shadow-xl sm:shadow-sm flex flex-col h-full"
                   onClick={() =>
                     (window.location.href = `/jam-room?id=${jam.id}`)
                   }
@@ -540,7 +540,7 @@ export default function Home() {
                       Host: {jam.creator}
                     </p>
                   </CardHeader>
-                  <CardContent className="pb-4">
+                  <CardContent className="pb-4 flex-1">
                     <p className="text-xs sm:text-sm mb-2 font-medium">
                       Đang tìm kiếm:
                     </p>
@@ -551,8 +551,8 @@ export default function Home() {
                           <span
                             key={inst}
                             className={`text-[10px] sm:text-xs font-semibold px-2.5 py-1 rounded-md flex items-center gap-1.5 border ${isMatch
-                                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                                : "bg-muted/50 text-muted-foreground border-border"
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                              : "bg-muted/50 text-muted-foreground border-border"
                               }`}
                           >
                             <Disc className="w-3 h-3" />
@@ -567,7 +567,7 @@ export default function Home() {
                       })}
                     </div>
                   </CardContent>
-                  <CardFooter>
+                  <CardFooter className="mt-auto">
                     <Button
                       className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white h-12 sm:h-10 text-base sm:text-sm rounded-xl sm:rounded-md font-semibold"
                       onClick={(e) => {
