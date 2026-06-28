@@ -47,6 +47,7 @@ export default function RealWaveform({
         const SAMPLES = 400;
         const blockSize = Math.floor((rawData?.length || 0) / SAMPLES);
         const compressedPeaks = [];
+        let globalMax = 0;
 
         if (blockSize > 0) {
           for (let i = 0; i < SAMPLES; i++) {
@@ -57,8 +58,14 @@ export default function RealWaveform({
               if (amplitude > max) max = amplitude;
             }
             compressedPeaks.push(max);
+            if (max > globalMax) globalMax = max;
           }
         }
+
+        // Nếu đỉnh > 0, lấy từng phần tử chia cho đỉnh để kéo giãn tỷ lệ lên mức 0.0 -> 1.0
+        const normalizedPeaks = globalMax > 0
+          ? compressedPeaks.map(peak => peak / globalMax)
+          : compressedPeaks;
 
         if (isMounted) setPeaks(compressedPeaks);
       } catch (error) {
