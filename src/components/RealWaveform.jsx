@@ -67,7 +67,7 @@ export default function RealWaveform({
           ? compressedPeaks.map(peak => peak / globalMax)
           : compressedPeaks;
 
-        if (isMounted) setPeaks(compressedPeaks);
+        if (isMounted) setPeaks(normalizedPeaks);
       } catch (error) {
         console.error("Lỗi sóng âm:", error.message);
         if (isMounted) setHasError(true);
